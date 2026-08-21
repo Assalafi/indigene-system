@@ -90,6 +90,8 @@ Route::middleware(['auth', 'user.active'])->group(function () {
     // Applications
     Route::get('/applications', [ApplicationController::class, 'index'])->name('applications.index');
     Route::get('/applications/create', [ApplicationWizardController::class, 'create'])->name('applications.create');
+    Route::get('/applications/{application}/edit', [ApplicationWizardController::class, 'edit'])->name('applications.edit');
+    Route::post('/applications/{application}/save', [ApplicationWizardController::class, 'saveAndSubmit'])->name('applications.save');
     Route::get('/applications/{application}/wizard/{step}', [ApplicationWizardController::class, 'show'])
         ->where('step', '[1-8]')
         ->name('applications.wizard');

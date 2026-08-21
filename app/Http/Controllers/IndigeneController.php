@@ -131,7 +131,7 @@ class IndigeneController extends Controller
             'profile_version' => $profile->version_no,
         ], 'medium');
 
-        return redirect()->route('applications.wizard', ['application' => $application, 'step' => 3])
+        return redirect()->route('applications.edit', $application)
             ->with('info', 'Amendment started. The active certificate remains based on the previous approved version until this amendment is approved.');
     }
 

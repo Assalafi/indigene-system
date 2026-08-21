@@ -39,7 +39,7 @@
                     @endif
                     <div class="mt-2">
                         @can('update', $application)
-                            <a href="{{ route('applications.wizard', ['application' => $application, 'step' => 2]) }}" class="btn btn-sm btn-warning rounded-3 fw-semibold">
+                            <a href="{{ route('applications.edit', $application) }}" class="btn btn-sm btn-warning rounded-3 fw-semibold">
                                 <i class="ri-edit-line me-1"></i> Correct and resubmit
                             </a>
                         @endcan
@@ -87,8 +87,6 @@
 
                     <ul class="nav nav-tabs mb-3" role="tablist">
                         <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-overview">Overview</a></li>
-                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-family">Family &amp; kin</a></li>
-                        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-documents">Documents</a></li>
                         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-duplicates">Duplicate flags</a></li>
                         <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-history">History</a></li>
                     </ul>
@@ -97,54 +95,24 @@
                         <div class="tab-pane fade show active" id="tab-overview">
                             <dl class="review-grid">
                                 <div class="review-item"><dt>Full name</dt><dd>{{ $profile->displayName() ?: '—' }}</dd></div>
+                                <div class="review-item"><dt>NIN</dt><dd class="nin-mask">{{ $indigene->maskedNin() }}</dd></div>
                                 <div class="review-item"><dt>Date of birth</dt><dd>{{ $profile->date_of_birth?->format('d/m/Y') ?? '—' }}</dd></div>
-                                <div class="review-item"><dt>Sex / Marital status</dt><dd>{{ $profile->sex ? ucfirst($profile->sex) : '—' }} / {{ $profile->marital_status ?? '—' }}</dd></div>
-                                <div class="review-item"><dt>Nationality</dt><dd>{{ $profile->nationality ?? 'Nigerian' }}</dd></div>
+                                <div class="review-item"><dt>Sex</dt><dd>{{ $profile->sex ? ucfirst($profile->sex) : '—' }}</dd></div>
                                 <div class="review-item"><dt>Phone</dt><dd>{{ $profile->phone ?? '—' }}</dd></div>
                                 <div class="review-item"><dt>Email</dt><dd>{{ $profile->email ?? '—' }}</dd></div>
-                                <div class="review-item"><dt>Residential address</dt><dd>{{ $profile->residential_address ?? '—' }}, {{ $profile->residence_town ?? '' }}</dd></div>
-                                <div class="review-item"><dt>Indigene basis</dt><dd>{{ $profile->indigene_basis ?? '—' }}</dd></div>
+                                <div class="review-item"><dt>Ward</dt><dd>{{ $profile->ward?->name ?? '—' }}</dd></div>
+                                <div class="review-item"><dt>Village / unit</dt><dd>{{ $profile->unit?->name ?? '—' }}</dd></div>
+                                @php $guardian = $profile->relations->firstWhere('relation_type', 'guardian'); @endphp
+                                <div class="review-item"><dt>Guardian</dt>
+                                    <dd>
+                                        @if ($guardian)
+                                            {{ $guardian->full_name }}@if ($guardian->phone) &middot; {{ $guardian->phone }}@endif
+                                        @else
+                                            —
+                                        @endif
+                                    </dd>
+                                </div>
                             </dl>
-                        </div>
-                        <div class="tab-pane fade" id="tab-family">
-                            <dl class="review-grid">
-                                @forelse ($profile->relations as $relation)
-                                    <div class="review-item">
-                                        <dt>{{ $relation->relationTypeLabel() }}</dt>
-                                        <dd>{{ $relation->full_name }}
-                                            @if ($relation->relationship) &middot; {{ $relation->relationship }} @endif
-                                            @if ($relation->phone) &middot; {{ $relation->phone }} @endif
-                                        </dd>
-                                    </div>
-                                @empty
-                                    <div class="review-item"><dt>Relations</dt><dd>None recorded</dd></div>
-                                @endforelse
-                            </dl>
-                        </div>
-                        <div class="tab-pane fade" id="tab-documents">
-                            <ul class="list-unstyled mb-0">
-                                @forelse ($application->documents as $doc)
-                                    <li class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                                        <div>
-                                            <i class="ri-file-line me-1"></i>
-                                            <span class="fw-semibold">{{ $doc->documentTypeLabel() }}</span>
-                                            <span class="small text-secondary ms-2">{{ $doc->fileAsset->original_name }}
-                                                ({{ number_format($doc->fileAsset->size_bytes / 1024, 0) }} KB)</span>
-                                        </div>
-                                        <div class="d-flex align-items-center gap-2">
-                                            <span class="status-badge {{ $doc->fileAsset->status === 'quarantined' ? 'status-rejected' : 'status-approved' }}">
-                                                <span class="material-symbols-outlined">{{ $doc->fileAsset->status === 'quarantined' ? 'gpp_maybe' : 'shield_check' }}</span>
-                                                {{ ucfirst($doc->fileAsset->status) }}
-                                            </span>
-                                            <a href="{{ route('documents.download', $doc) }}" class="btn btn-sm btn-outline-secondary">
-                                                <i class="ri-download-2-line"></i> <span class="visually-hidden">Download document</span>
-                                            </a>
-                                        </div>
-                                    </li>
-                                @empty
-                                    <li class="text-secondary">No documents uploaded.</li>
-                                @endforelse
-                            </ul>
                         </div>
                         <div class="tab-pane fade" id="tab-duplicates">
                             @forelse ($application->duplicateFlags as $flag)
@@ -236,15 +204,13 @@
                 <div class="card bg-white border-0 rounded-3 mb-4">
                     <div class="card-body p-4">
                         <h5 class="fw-semibold mb-3">Actions</h5>
-                        <a href="{{ route('applications.wizard', ['application' => $application, 'step' => $application->last_saved_step]) }}"
-                           class="btn btn-primary-div text-white w-100 mb-2 rounded-3 fw-semibold">
-                            <i class="ri-edit-line me-1"></i> Resume wizard (step {{ $application->last_saved_step }})
-                        </a>
-                        @if ($application->status === \App\Enums\ApplicationStatus::Draft || $application->status === \App\Enums\ApplicationStatus::ChangesRequested)
-                            <a href="{{ route('applications.wizard', ['application' => $application, 'step' => 8]) }}"
-                               class="btn btn-outline-primary-div w-100 rounded-3 fw-semibold">
-                                <i class="ri-rate-review-line me-1"></i> Go to review &amp; submit
+                        @if ($application->canBeSubmitted())
+                            <a href="{{ route('applications.edit', $application) }}"
+                               class="btn btn-primary-div text-white w-100 mb-2 rounded-3 fw-semibold">
+                                <i class="ri-edit-line me-1"></i> Edit and submit
                             </a>
+                        @else
+                            <p class="small text-secondary mb-0">This application is no longer editable.</p>
                         @endif
                     </div>
                 </div>
@@ -286,13 +252,11 @@
                                 <label class="form-label fw-semibold">Approval checklist <span class="required-indicator">Required</span></label>
                                 @php $items = [
                                     'Photograph is clear and belongs to the applicant',
-                                    'NIN format and verification/exemption state meet policy',
+                                    'NIN format and verification state meet policy',
                                     'Name and date of birth are consistent with evidence',
                                     'Selected LGA, ward and unit are valid',
-                                    'Stated indigene basis/evidence is sufficient',
-                                    'Parent/guardian/next-of-kin rules are complete',
+                                    'Guardian details are complete',
                                     'Duplicate flags are resolved or accepted',
-                                    'Required documents passed malware scan and are readable',
                                     'Applicant/operator declaration was captured',
                                     'I am not the creator of this application',
                                 ]; @endphp
