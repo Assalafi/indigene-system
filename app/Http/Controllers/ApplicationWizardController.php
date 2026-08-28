@@ -60,6 +60,8 @@ class ApplicationWizardController extends Controller
             abort(403, 'You need an active LGA assignment to register indigenes.');
         }
 
+        $units = Unit::where('lga_id', $lga->id)->where('status', 'active')->where('category', '!=', 'polling_unit')->orderBy('name')->get();
+
         return view('applications.create', [
             'application' => null,
             'profile' => null,
@@ -68,7 +70,8 @@ class ApplicationWizardController extends Controller
             'state' => $state,
             'districts' => District::where('lga_id', $lga->id)->where('status', 'active')->orderBy('name')->get(),
             'wards' => Ward::where('lga_id', $lga->id)->where('status', 'active')->orderBy('name')->get(),
-            'units' => Unit::where('lga_id', $lga->id)->where('status', 'active')->where('category', '!=', 'polling_unit')->orderBy('name')->get(),
+            'units' => $units,
+            'unitOptions' => $units->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'ward_id' => $u->ward_id, 'district_id' => $u->district_id])->values(),
             'guardian' => null,
             'creating' => true,
         ]);
@@ -138,6 +141,8 @@ class ApplicationWizardController extends Controller
         $lga = $application->lga;
         $state = $lga->state;
 
+        $units = Unit::where('lga_id', $lga->id)->where('status', 'active')->where('category', '!=', 'polling_unit')->orderBy('name')->get();
+
         return view('applications.create', [
             'application' => $application,
             'profile' => $application->profile,
@@ -146,7 +151,8 @@ class ApplicationWizardController extends Controller
             'state' => $state,
             'districts' => District::where('lga_id', $lga->id)->where('status', 'active')->orderBy('name')->get(),
             'wards' => Ward::where('lga_id', $lga->id)->where('status', 'active')->orderBy('name')->get(),
-            'units' => Unit::where('lga_id', $lga->id)->where('status', 'active')->where('category', '!=', 'polling_unit')->orderBy('name')->get(),
+            'units' => $units,
+            'unitOptions' => $units->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'ward_id' => $u->ward_id, 'district_id' => $u->district_id])->values(),
             'guardian' => $application->profile->relations()->where('relation_type', 'guardian')->first(),
             'creating' => false,
         ]);

@@ -212,7 +212,7 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        var units = @json($units->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'ward_id' => $u->ward_id, 'district_id' => $u->district_id]));
+        var units = @json($unitOptions);
         var districtSel = document.getElementById('district_id');
         var wardSel = document.getElementById('ward_id');
         var unitSel = document.getElementById('unit_id');
