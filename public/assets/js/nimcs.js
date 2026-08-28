@@ -173,6 +173,7 @@ document.addEventListener('DOMContentLoaded', function () {
             input.className = 'form-control searchable-select-input';
             input.setAttribute('autocomplete', 'off');
             input.setAttribute('placeholder', 'Search and select\u2026');
+            if (select.hasAttribute('required')) { input.setAttribute('required', 'required'); }
             wrap.appendChild(input);
 
             var chevron = document.createElement('span');
@@ -193,7 +194,10 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             function selectedLabel() {
-                return select.selectedIndex >= 0 ? select.options[select.selectedIndex].textContent.trim() : '';
+                if (select.selectedIndex < 0) { return ''; }
+                var opt = select.options[select.selectedIndex];
+                // Placeholder options (empty value) must not be shown as the chosen value.
+                return opt.value !== '' ? opt.textContent.trim() : '';
             }
 
             function render(filter) {
@@ -229,7 +233,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 select.dispatchEvent(new Event('change', { bubbles: true }));
             }
 
-            input.addEventListener('focus', function () { readOptions(); render(input.value); list.hidden = false; });
+            input.addEventListener('focus', function () { readOptions(); render(input.value); list.hidden = false; input.select(); });
             input.addEventListener('input', function () { render(input.value); list.hidden = false; });
             input.addEventListener('blur', function () { setTimeout(function () { list.hidden = true; }, 120); });
             document.addEventListener('click', function (e) { if (!wrap.contains(e.target)) { list.hidden = true; } });

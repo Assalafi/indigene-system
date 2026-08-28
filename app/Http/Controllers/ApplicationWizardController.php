@@ -181,8 +181,8 @@ class ApplicationWizardController extends Controller
             'nationality' => ['nullable', 'string', 'max:80'],
             'phone' => ['nullable', 'string', 'max:20'],
             'email' => ['nullable', 'email', 'max:190'],
-            'district_id' => ['nullable', 'uuid', 'exists:districts,id'],
-            'ward_id' => ['required', 'uuid', 'exists:wards,id'],
+            'district_id' => ['required', 'uuid', 'exists:districts,id'],
+            'ward_id' => ['nullable', 'uuid', 'exists:wards,id'],
             'unit_id' => ['required', 'uuid', 'exists:units,id'],
             'hometown' => ['nullable', 'string', 'max:180'],
             'guardian_name' => ['required', 'string', 'max:180'],
@@ -194,22 +194,23 @@ class ApplicationWizardController extends Controller
             'guardian_name.required' => 'A guardian or parent is required.',
         ]);
 
-        $district = $data['district_id'] ?? null;
+        $districtRecord = District::findOrFail($data['district_id']);
 
-        if ($district) {
-            $districtRecord = District::find($district);
+        if ($districtRecord->lga_id !== $lga->id) {
+            throw ValidationException::withMessages(['district_id' => 'The selected district does not belong to your LGA.']);
+        }
 
-            if ($districtRecord && $districtRecord->lga_id !== $lga->id) {
-                throw ValidationException::withMessages(['district_id' => 'The selected district does not belong to your LGA.']);
+        $ward = null;
+
+        if (! empty($data['ward_id'])) {
+            $ward = Ward::findOrFail($data['ward_id']);
+
+            if ($ward->lga_id !== $lga->id) {
+                throw ValidationException::withMessages(['ward_id' => 'The selected ward does not belong to your LGA.']);
             }
         }
 
-        $ward = Ward::findOrFail($data['ward_id']);
         $unit = Unit::findOrFail($data['unit_id']);
-
-        if ($ward->lga_id !== $lga->id) {
-            throw ValidationException::withMessages(['ward_id' => 'The selected ward does not belong to your LGA.']);
-        }
 
         // No district/ward/village hierarchy mapping is enforced; the village only
         // needs to belong to the LGA (its ward is auto-filled on selection).
@@ -249,8 +250,8 @@ class ApplicationWizardController extends Controller
             'nationality' => $data['nationality'] ?? 'Nigerian',
             'phone' => $data['phone'] ?? null,
             'email' => $data['email'] ?? null,
-            'district_id' => $district,
-            'ward_id' => $ward->id,
+            'district_id' => $districtRecord->id,
+            'ward_id' => $ward?->id,
             'unit_id' => $unit->id,
             'hometown' => $data['hometown'] ?? null,
         ]);

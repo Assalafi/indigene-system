@@ -19,5 +19,5 @@
 <script src="{{ url('/assets/js/custom/apexcharts.js') }}"></script>
 <script src="{{ url('/assets/js/custom/echarts.js') }}"></script>
 <script src="{{ url('/assets/js/custom/custom.js') }}"></script>
-<script src="{{ url('/assets/js/nimcs.js') }}"></script>
+<script src="{{ url('/assets/js/nimcs.js') }}?v={{ filemtime(public_path('assets/js/nimcs.js')) }}"></script>
 @stack('scripts')
