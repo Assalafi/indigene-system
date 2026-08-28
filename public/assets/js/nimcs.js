@@ -153,4 +153,93 @@ document.addEventListener('DOMContentLoaded', function () {
             el.addEventListener('input', triggerSave);
         });
     }
+
+    // Searchable selects: wraps a native <select class="searchable-select"> with a
+    // type-to-filter input + dropdown. The native select stays hidden and remains the
+    // source of truth for the submitted value and validation. A MutationObserver keeps
+    // the dropdown in sync when cascading JS replaces the option list.
+    [].slice.call(document.querySelectorAll('select.searchable-select'))
+        .forEach(function (select) {
+            if (select.dataset.searchableReady) { return; }
+            select.dataset.searchableReady = '1';
+
+            var wrap = document.createElement('div');
+            wrap.className = 'searchable-select-wrap';
+            select.parentNode.insertBefore(wrap, select);
+            wrap.appendChild(select);
+
+            var input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'form-control searchable-select-input';
+            input.setAttribute('autocomplete', 'off');
+            input.setAttribute('placeholder', 'Search and select\u2026');
+            wrap.appendChild(input);
+
+            var chevron = document.createElement('span');
+            chevron.className = 'searchable-select-chevron';
+            wrap.appendChild(chevron);
+
+            var list = document.createElement('ul');
+            list.className = 'searchable-select-list';
+            list.hidden = true;
+            wrap.appendChild(list);
+
+            var options = [];
+
+            function readOptions() {
+                options = [].slice.call(select.options)
+                    .filter(function (o) { return o.value && o.value !== ''; })
+                    .map(function (o) { return { value: o.value, label: o.textContent.trim() }; });
+            }
+
+            function selectedLabel() {
+                return select.selectedIndex >= 0 ? select.options[select.selectedIndex].textContent.trim() : '';
+            }
+
+            function render(filter) {
+                list.innerHTML = '';
+                filter = (filter || '').toLowerCase();
+                var shown = 0;
+                options.forEach(function (opt) {
+                    if (filter && opt.label.toLowerCase().indexOf(filter) < 0) { return; }
+                    var li = document.createElement('li');
+                    li.className = 'searchable-select-option';
+                    li.textContent = opt.label;
+                    li.addEventListener('mousedown', function (e) { e.preventDefault(); });
+                    li.addEventListener('click', function () { choose(opt.value); });
+                    list.appendChild(li);
+                    shown++;
+                });
+                if (!shown) {
+                    var empty = document.createElement('li');
+                    empty.className = 'searchable-select-empty';
+                    empty.textContent = 'No matching option';
+                    list.appendChild(empty);
+                }
+            }
+
+            function choose(value) {
+                select.value = value;
+                var label = '';
+                for (var i = 0; i < options.length; i++) {
+                    if (options[i].value === value) { label = options[i].label; break; }
+                }
+                input.value = label;
+                list.hidden = true;
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+
+            input.addEventListener('focus', function () { readOptions(); render(input.value); list.hidden = false; });
+            input.addEventListener('input', function () { render(input.value); list.hidden = false; });
+            input.addEventListener('blur', function () { setTimeout(function () { list.hidden = true; }, 120); });
+            document.addEventListener('click', function (e) { if (!wrap.contains(e.target)) { list.hidden = true; } });
+
+            select.addEventListener('change', function () { input.value = selectedLabel(); });
+
+            var mo = new MutationObserver(function () { readOptions(); input.value = selectedLabel(); });
+            mo.observe(select, { childList: true });
+
+            readOptions();
+            input.value = selectedLabel();
+        });
 });

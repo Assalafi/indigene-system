@@ -126,7 +126,7 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label for="district_id" class="form-label">District <span class="text-secondary">(optional)</span></label>
-                                <select class="form-select" id="district_id" name="district_id">
+                                <select class="form-select searchable-select" id="district_id" name="district_id">
                                     <option value="">— None —</option>
                                     @foreach ($districts as $district)
                                         <option value="{{ $district->id }}" @selected(old('district_id', $profile?->district_id) === $district->id)>{{ $district->name }}</option>
@@ -136,7 +136,7 @@
                             </div>
                             <div class="col-md-6">
                                 <label for="ward_id" class="form-label">Ward <span class="required-indicator">Required</span></label>
-                                <select class="form-select" id="ward_id" name="ward_id" required>
+                                <select class="form-select searchable-select" id="ward_id" name="ward_id" required>
                                     <option value="">Select ward</option>
                                     @foreach ($wards as $ward)
                                         <option value="{{ $ward->id }}" @selected(old('ward_id', $profile?->ward_id) === $ward->id)>{{ $ward->name }}</option>
@@ -146,7 +146,7 @@
                             </div>
                             <div class="col-md-6">
                                 <label for="unit_id" class="form-label">Village / community unit <span class="required-indicator">Required</span></label>
-                                <select class="form-select" id="unit_id" name="unit_id" required>
+                                <select class="form-select searchable-select" id="unit_id" name="unit_id" required>
                                     <option value="">Select unit</option>
                                     @foreach ($units as $unit)
                                         <option value="{{ $unit->id }}" @selected(old('unit_id', $profile?->unit_id) === $unit->id)>{{ $unit->name }}</option>

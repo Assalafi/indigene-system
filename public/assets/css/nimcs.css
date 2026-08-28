@@ -350,3 +350,31 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
     .no-print { display: none !important; }
     body { background: #fff; }
 }
+
+/* ---------- Searchable selects ---------- */
+.searchable-select { display: none; }
+.searchable-select-wrap { position: relative; }
+.searchable-select-input { padding-right: 2.1rem; }
+.searchable-select-chevron {
+    position: absolute; right: 13px; top: 50%; transform: translateY(-50%);
+    pointer-events: none; color: var(--muted);
+}
+.searchable-select-chevron::after {
+    content: '';
+    display: inline-block; width: 8px; height: 8px;
+    border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+    transform: rotate(45deg) translateY(-2px);
+}
+.searchable-select-list {
+    position: absolute; z-index: 1050; top: calc(100% + 4px); left: 0; right: 0;
+    max-height: 260px; overflow-y: auto; margin: 0; padding: 4px;
+    list-style: none; background: #fff; border: 1px solid #dde3e9;
+    border-radius: .5rem; box-shadow: 0 10px 30px rgba(11,31,58,.12);
+}
+.searchable-select-list[hidden] { display: none; }
+.searchable-select-option {
+    padding: .45rem .6rem; border-radius: .35rem; cursor: pointer;
+    color: #0B1F3A; font-size: .875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.searchable-select-option:hover, .searchable-select-option.active { background: rgba(8,122,75,.10); color: var(--brand-green); }
+.searchable-select-empty { padding: .5rem .6rem; color: var(--muted); font-size: .875rem; }
