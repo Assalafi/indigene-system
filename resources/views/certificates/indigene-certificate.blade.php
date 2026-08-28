@@ -284,9 +284,9 @@
             right: 48mm;
             left: 28mm;
             color: #111;
-            font-family: 'Great Vibes', 'DejaVu Serif', serif;
-            font-size: 17pt;
-            font-style: normal;
+            font-family: 'DejaVu Serif', serif;
+            font-size: 12.5pt;
+            font-style: italic;
             font-weight: 400;
             line-height: 1.2;
         }
