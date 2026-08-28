@@ -206,26 +206,6 @@
 
 @push('scripts')
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        var units = @json($unitOptions);
-        var districtSel = document.getElementById('district_id');
-        var wardSel = document.getElementById('ward_id');
-        var unitSel = document.getElementById('unit_id');
-
-        // No hierarchy mapping: the village list is independent. Choosing a village
-        // auto-fills its ward and district so the record stays consistent.
-        unitSel.addEventListener('change', function () {
-            var u = units.find(function (x) { return x.id === unitSel.value; });
-            if (!u) { return; }
-            if (u.district_id) {
-                districtSel.value = u.district_id;
-                districtSel.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-            if (u.ward_id) {
-                wardSel.value = u.ward_id;
-                wardSel.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-        });
-    });
+    // District, Ward and Village are fully independent selections (no auto-fill).
 </script>
 @endpush

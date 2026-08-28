@@ -71,7 +71,6 @@ class ApplicationWizardController extends Controller
             'districts' => District::where('lga_id', $lga->id)->where('status', 'active')->orderBy('name')->get(),
             'wards' => Ward::where('lga_id', $lga->id)->where('status', 'active')->orderBy('name')->get(),
             'units' => $units,
-            'unitOptions' => $units->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'ward_id' => $u->ward_id, 'district_id' => $u->district_id])->values(),
             'guardian' => null,
             'creating' => true,
         ]);
@@ -152,7 +151,6 @@ class ApplicationWizardController extends Controller
             'districts' => District::where('lga_id', $lga->id)->where('status', 'active')->orderBy('name')->get(),
             'wards' => Ward::where('lga_id', $lga->id)->where('status', 'active')->orderBy('name')->get(),
             'units' => $units,
-            'unitOptions' => $units->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'ward_id' => $u->ward_id, 'district_id' => $u->district_id])->values(),
             'guardian' => $application->profile->relations()->where('relation_type', 'guardian')->first(),
             'creating' => false,
         ]);
