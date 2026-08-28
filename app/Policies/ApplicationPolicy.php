@@ -32,20 +32,13 @@ class ApplicationPolicy
             return false;
         }
 
-        // Only drafts and correction states are editable.
-        if (! $application->canBeSubmitted()) {
-            return false;
-        }
-
-        if ($application->created_by === $user->id) {
+        // Editing is always available to the creator (or System Admin) at any stage.
+        // Editing an approved record suspends its certificate and re-enters the queue.
+        if ($application->created_by === $user->id || $user->isSystemAdmin()) {
             return true;
         }
 
-        if ($user->isSystemAdmin()) {
-            return true;
-        }
-
-        // Another user's draft may be edited when delegated (audited).
+        // Another user's application may be edited when delegated (audited).
         return $application->assigned_reviewer_id === $user->id && $user->can('application.edit-delegated');
     }
 

@@ -60,8 +60,13 @@
 
                     @php $profile = $application->profile; $indigene = $application->indigene; @endphp
 
+                    @php
+                        $photo = $profile->photoFile;
+                        $photoExists = $photo && \Illuminate\Support\Facades\Storage::disk($photo->storage_disk)->exists($photo->object_key);
+                    @endphp
+
                     <div class="d-flex align-items-center gap-3 mb-4">
-                        @if ($profile->photoFile)
+                        @if ($photoExists)
                             <img src="{{ route('documents.photo', ['file' => $profile->photoFile]) }}" alt="Applicant photograph"
                                  class="rounded-3" style="width:96px;height:96px;object-fit:cover;" onerror="this.style.display='none'">
                         @else
@@ -82,6 +87,11 @@
                                 &middot; Unit: {{ $profile->unit?->name ?? '—' }}
                                 @if ($profile->district) &middot; District: {{ $profile->district->name }} @endif
                             </div>
+                            @if ($photo && ! $photoExists)
+                                <div class="alert alert-warning small py-1 px-2 mt-2 mb-0">
+                                    The photograph file is missing on the server. Re-upload it using <a href="{{ route('applications.edit', $application) }}" class="text-decoration-underline">Edit application</a>.
+                                </div>
+                            @endif
                         </div>
                     </div>
 
@@ -226,12 +236,17 @@
             <div class="card bg-white border-0 rounded-3 mb-4">
                 <div class="card-body p-4">
                     <h5 class="fw-semibold mb-3">Actions</h5>
-                    @if ($application->canBeSubmitted() && auth()->user()->can('update', $application))
+                    @can('update', $application)
                         <a href="{{ route('applications.edit', $application) }}"
                            class="btn btn-primary-div text-white w-100 mb-2 rounded-3 fw-semibold">
-                            <i class="ri-edit-line me-1"></i> Correct and resubmit
+                            <i class="ri-edit-line me-1"></i> Edit application
                         </a>
-                    @endif
+                        @if ($application->status === \App\Enums\ApplicationStatus::Approved)
+                            <p class="small text-secondary mb-3">
+                                Editing an approved record suspends its certificate until the changes are re-approved.
+                            </p>
+                        @endif
+                    @endcan
                     @can('delete', $application)
                         <form method="POST" action="{{ route('applications.delete', $application) }}"
                               data-confirm="Delete this application and its applicant record? This cannot be undone.">

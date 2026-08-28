@@ -122,7 +122,10 @@ class IndigeneApplication extends Model
 
     public function canBeSubmitted(): bool
     {
-        return in_array($this->status, [ApplicationStatus::Draft, ApplicationStatus::ChangesRequested], true);
+        // Any application can be edited and resubmitted — including rejected and
+        // pending records. Approved records are handled separately (editing one
+        // suspends its certificate and re-enters the approval queue).
+        return $this->status !== ApplicationStatus::Approved;
     }
 
     public function canBeDecidedBy(User $user): bool

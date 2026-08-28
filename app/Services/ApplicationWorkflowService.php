@@ -13,6 +13,7 @@ use App\Models\IndigeneApplication;
 use App\Models\IndigeneProfile;
 use App\Models\SystemSetting;
 use App\Models\User;
+use App\Services\CertificateStatusService;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -25,8 +26,8 @@ class ApplicationWorkflowService
 
     public function submit(IndigeneApplication $application, User $user): void
     {
-        if (! in_array($application->status, [ApplicationStatus::Draft, ApplicationStatus::ChangesRequested], true)) {
-            throw new HttpException(409, 'This application cannot be submitted from its current status.');
+        if ($application->status === ApplicationStatus::Approved && $user->id === $application->created_by && ! $user->isSystemAdmin()) {
+            throw new HttpException(403, 'An approved record can only be edited and resubmitted by its creator or a System Admin.');
         }
 
         // SRD 14.1 rule 4: exact and fuzzy duplicate checks run before submission.
@@ -43,23 +44,47 @@ class ApplicationWorkflowService
             ? ApplicationStatus::PendingSystemAdmin
             : ApplicationStatus::PendingChairman;
 
-        DB::transaction(function () use ($application, $user, $route, $target) {
-            $from = $application->status->value;
+        $from = $application->status->value;
+        $wasApproved = $application->status === ApplicationStatus::Approved;
+
+        DB::transaction(function () use ($application, $user, $route, $target, $from, $wasApproved) {
+            if ($wasApproved) {
+                // An approved record that is edited and resubmitted is no longer final:
+                // suspend any active certificate until the re-approval completes.
+                $suspender = app(CertificateStatusService::class);
+
+                $application->indigene->certificates()
+                    ->where('status', CertificateStatus::Active->value)
+                    ->get()
+                    ->each(function (Certificate $certificate) use ($suspender, $user) {
+                        $suspender->suspend($certificate, $user, 'record_edited', 'Record edited and resubmitted after approval; certificate suspended pending re-approval.');
+                    });
+            }
 
             $application->approval_route = $route;
             $application->status = $target;
             $application->submitted_by = $user->id;
             $application->submitted_at = now();
             $application->due_at = now()->addDays((int) SystemSetting::getSetting('application_due_days', 7));
+            $application->decided_by = null;
+            $application->decided_at = null;
+            $application->decision_reason_code = null;
+            $application->decision_comment = null;
             $application->save();
 
-            $application->profile->update(['profile_status' => 'submitted']);
+            $application->profile->update(['profile_status' => $wasApproved ? 'changes_requested' : 'submitted']);
 
-            $this->history($application, $from, $target->value, 'submit', $user,
-                'Application submitted for review.');
+            $this->history($application, $from, $target->value,
+                $wasApproved ? 'edit_resubmit' : 'submit', $user,
+                $wasApproved
+                    ? 'Record edited after approval. Certificate suspended; awaiting re-approval.'
+                    : 'Application submitted for review.');
         });
 
-        $this->audit->record('application.submitted', IndigeneApplication::class, $application->id, [], [
+        $this->audit->record('application.submitted', IndigeneApplication::class, $application->id, [
+            'from' => $from,
+            'resubmitted' => $wasApproved,
+        ], [
             'status' => $target->value,
             'route' => $route,
         ], 'medium', $user);

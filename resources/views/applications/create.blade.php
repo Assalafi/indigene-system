@@ -18,7 +18,7 @@
 
             <form method="POST" action="{{ $creating ? route('applications.store') : route('applications.save', $application) }}"
                   enctype="multipart/form-data"
-                  data-confirm="Submit this application for LGA approval? You will not be able to edit it after submission.">
+                  data-confirm="Submit this application for approval?">
                 @csrf
                 @if ($creating && auth()->user()->isSystemAdmin())
                     <input type="hidden" name="lga_id" value="{{ $lga->id }}">
@@ -86,6 +86,22 @@
                             </div>
                             <div class="col-md-6">
                                 <label for="photo" class="form-label">Photograph <span class="text-secondary">{{ $creating ? '(recommended)' : '(optional)' }}</span></label>
+                                @if (! $creating && $profile?->photoFile)
+                                    @php $existingPhoto = \Illuminate\Support\Facades\Storage::disk($profile->photoFile->storage_disk)->exists($profile->photoFile->object_key); @endphp
+                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                        <img src="{{ route('documents.photo', ['file' => $profile->photoFile]) }}" alt="Current photograph"
+                                             class="rounded-3" style="width:64px;height:64px;object-fit:cover;"
+                                             @if (! $existingPhoto) onerror="this.style.display='none'" @endif>
+                                        <div class="small">
+                                            <span class="text-secondary">Current photo</span>
+                                            @if (! $existingPhoto)
+                                                <span class="text-danger d-block">File missing — upload a replacement.</span>
+                                            @else
+                                                <span class="text-secondary d-block">Upload a new file to replace it.</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                @endif
                                 <input class="form-control" id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp">
                                 <div class="form-text">JPEG, PNG or WebP, max 5 MB. Face clearly visible.</div>
                                 @error('photo')<span class="text-danger small">{{ $message }}</span>@enderror
