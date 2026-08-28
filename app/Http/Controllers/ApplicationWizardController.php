@@ -284,10 +284,15 @@ class ApplicationWizardController extends Controller
 
         $this->duplicates->detect($indigene, $profile, $application);
 
-        app(ApplicationWorkflowService::class)->submit($application, auth()->user());
+        $workflow = app(ApplicationWorkflowService::class);
+        $wasApproved = $application->status === \App\Enums\ApplicationStatus::Approved;
+
+        $workflow->submit($application, auth()->user());
 
         return redirect()->route('applications.show', $application)
-            ->with('status', 'Application '.$application->application_number.' has been submitted for approval.');
+            ->with('status', $wasApproved
+                ? 'Application updated. The certificate has been re-issued with the corrected details.'
+                : 'Application '.$application->application_number.' has been submitted for approval.');
     }
 
     /**

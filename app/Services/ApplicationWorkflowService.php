@@ -13,7 +13,6 @@ use App\Models\IndigeneApplication;
 use App\Models\IndigeneProfile;
 use App\Models\SystemSetting;
 use App\Models\User;
-use App\Services\CertificateStatusService;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -26,8 +25,17 @@ class ApplicationWorkflowService
 
     public function submit(IndigeneApplication $application, User $user): void
     {
-        if ($application->status === ApplicationStatus::Approved && $user->id === $application->created_by && ! $user->isSystemAdmin()) {
-            throw new HttpException(403, 'An approved record can only be edited and resubmitted by its creator or a System Admin.');
+        // Editing an approved record updates it in place: no status change, no
+        // re-approval, and the certificate is re-issued (new version, same number)
+        // with the corrected data so realtime prints reflect the change.
+        if ($application->status === ApplicationStatus::Approved) {
+            $this->applyApprovedEdit($application, $user);
+
+            return;
+        }
+
+        if ($user->id === $application->created_by && ! $user->isSystemAdmin()) {
+            throw new HttpException(403, 'This application can only be edited and resubmitted by its creator or a System Admin.');
         }
 
         // SRD 14.1 rule 4: exact and fuzzy duplicate checks run before submission.
@@ -45,22 +53,8 @@ class ApplicationWorkflowService
             : ApplicationStatus::PendingChairman;
 
         $from = $application->status->value;
-        $wasApproved = $application->status === ApplicationStatus::Approved;
 
-        DB::transaction(function () use ($application, $user, $route, $target, $from, $wasApproved) {
-            if ($wasApproved) {
-                // An approved record that is edited and resubmitted is no longer final:
-                // suspend any active certificate until the re-approval completes.
-                $suspender = app(CertificateStatusService::class);
-
-                $application->indigene->certificates()
-                    ->where('status', CertificateStatus::Active->value)
-                    ->get()
-                    ->each(function (Certificate $certificate) use ($suspender, $user) {
-                        $suspender->suspend($certificate, $user, 'record_edited', 'Record edited and resubmitted after approval; certificate suspended pending re-approval.');
-                    });
-            }
-
+        DB::transaction(function () use ($application, $user, $route, $target, $from) {
             $application->approval_route = $route;
             $application->status = $target;
             $application->submitted_by = $user->id;
@@ -72,24 +66,53 @@ class ApplicationWorkflowService
             $application->decision_comment = null;
             $application->save();
 
-            $application->profile->update(['profile_status' => $wasApproved ? 'changes_requested' : 'submitted']);
+            $application->profile->update(['profile_status' => 'submitted']);
 
-            $this->history($application, $from, $target->value,
-                $wasApproved ? 'edit_resubmit' : 'submit', $user,
-                $wasApproved
-                    ? 'Record edited after approval. Certificate suspended; awaiting re-approval.'
-                    : 'Application submitted for review.');
+            $this->history($application, $from, $target->value, 'submit', $user,
+                'Application submitted for review.');
         });
 
         $this->audit->record('application.submitted', IndigeneApplication::class, $application->id, [
             'from' => $from,
-            'resubmitted' => $wasApproved,
         ], [
             'status' => $target->value,
             'route' => $route,
         ], 'medium', $user);
 
         $this->notifyQueue($application, $user);
+    }
+
+    private function applyApprovedEdit(IndigeneApplication $application, User $user): void
+    {
+        $renderer = app(CertificateRenderService::class);
+
+        $newVersion = DB::transaction(function () use ($application, $user, $renderer) {
+            $issuedVersion = null;
+
+            // Re-issue the certificate(s) for this record in place — same number,
+            // same status (active), corrected snapshot.
+            foreach ($application->indigene->certificates()
+                ->whereIn('status', [
+                    CertificateStatus::Active->value,
+                    CertificateStatus::Eligible->value,
+                ])
+                ->get() as $certificate) {
+                $issuedVersion = $renderer->refreshForEdit($certificate, $user);
+            }
+
+            // Application stays approved; only the profile/version has moved forward.
+            $application->profile->update(['profile_status' => 'current']);
+
+            $this->history($application, ApplicationStatus::Approved->value, ApplicationStatus::Approved->value,
+                'edit_approved', $user,
+                'Record edited in place. Certificate re-issued (version '.($issuedVersion?->version_no ?? '—').', same number).');
+
+            return $issuedVersion;
+        });
+
+        $this->audit->record('application.edited_approved', IndigeneApplication::class, $application->id, [], [
+            'certificate_version' => $newVersion?->version_no,
+        ], 'high', $user);
     }
 
     /**

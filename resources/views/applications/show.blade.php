@@ -243,7 +243,8 @@
                         </a>
                         @if ($application->status === \App\Enums\ApplicationStatus::Approved)
                             <p class="small text-secondary mb-3">
-                                Editing an approved record suspends its certificate until the changes are re-approved.
+                                Editing an approved record updates it in place and re-issues the certificate
+                                with the corrected details. Its number and verification link stay the same.
                             </p>
                         @endif
                     @endcan

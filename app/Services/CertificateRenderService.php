@@ -146,6 +146,84 @@ class CertificateRenderService
         });
     }
 
+    /**
+     * Re-render a new version for an edited approved record. The certificate keeps
+     * its number and active status; the corrected snapshot becomes the current version.
+     * The public verification token is preserved so existing printed QR codes stay valid.
+     */
+    public function refreshForEdit(Certificate $certificate, User $user): CertificateVersion
+    {
+        $indigene = $certificate->indigene;
+        $profile = $indigene->currentProfile;
+
+        if (! $profile) {
+            throw new HttpException(409, 'No current profile exists for this indigene.');
+        }
+
+        $lga = $certificate->lga;
+        $lgaProfile = LgaProfile::where('lga_id', $lga->id)
+            ->where('status', 'published')
+            ->orderByDesc('version_no')
+            ->first();
+
+        $signatory = OfficialSignatory::where('lga_id', $lga->id)
+            ->where('status', 'active')
+            ->where('is_primary', true)
+            ->first();
+
+        if (! $lgaProfile || ! $signatory) {
+            throw new HttpException(409, 'LGA branding and an active signatory are required before a certificate can be issued.');
+        }
+
+        $number = $certificate->certificate_number ?? $this->numbers->allocate($lga);
+
+        // Preserve the existing verification token so previously printed copies keep
+        // a working QR; only fall back to a fresh token for a never-issued certificate.
+        $publicToken = null;
+
+        if ($certificate->currentVersion?->snapshot_ciphertext) {
+            $previous = json_decode(Crypt::decryptString($certificate->currentVersion->snapshot_ciphertext), true);
+            $publicToken = Str::afterLast($previous['verification_url'] ?? '', '/');
+        }
+
+        $publicToken = $publicToken ?: Str::random(32);
+        $verificationUrl = route('certificates.verify.token', ['token' => $publicToken]);
+
+        $snapshot = $this->buildSnapshot($certificate, $profile, $lgaProfile, $signatory, $number, $verificationUrl);
+
+        return DB::transaction(function () use ($certificate, $profile, $lgaProfile, $signatory, $number, $publicToken, $verificationUrl, $snapshot, $user) {
+            $versionNo = CertificateVersion::where('certificate_id', $certificate->id)->max('version_no') + 1;
+
+            $version = CertificateVersion::create([
+                'certificate_id' => $certificate->id,
+                'version_no' => $versionNo,
+                'certificate_template_id' => $snapshot['template_id'],
+                'lga_profile_id' => $lgaProfile->id,
+                'signatory_id' => $signatory->id,
+                'source_profile_id' => $profile->id,
+                'snapshot_ciphertext' => Crypt::encryptString(json_encode($snapshot)),
+                'qr_payload_hash' => hash('sha256', $verificationUrl),
+                'generated_by' => $user->id,
+                'generated_at' => now(),
+                'status' => 'active',
+            ]);
+
+            $certificate->certificate_number = $number;
+            $certificate->status = CertificateStatus::Active;
+            $certificate->current_version_id = $version->id;
+            $certificate->public_token_hash = hash('sha256', $publicToken);
+            $certificate->public_token_hint = substr($publicToken, 0, 8);
+            $certificate->issued_at = $certificate->issued_at ?? now();
+            $certificate->save();
+
+            $pdf = $this->renderPdf($snapshot, $verificationUrl);
+            $version->pdf_sha256 = hash('sha256', $pdf);
+            $version->save();
+
+            return $version;
+        });
+    }
+
     public function buildSnapshot(Certificate $certificate, IndigeneProfile $profile, LgaProfile $lgaProfile, OfficialSignatory $signatory, string $number, ?string $verificationUrl = null): array
     {
         $indigene = $certificate->indigene;
