@@ -302,12 +302,27 @@ class ApplicationWorkflowService
 
     private function activateCertificateEligibility(IndigeneApplication $application, User $user): void
     {
-        $existing = Certificate::where('indigene_id', $application->indigene_id)
-            ->whereIn('status', [CertificateStatus::Eligible->value])
-            ->first();
+        $existing = Certificate::where('approved_application_id', $application->id)->get();
 
-        if ($existing) {
-            return;
+        if ($existing->isNotEmpty()) {
+            // Re-approval after an edit: return the existing certificate to Eligible
+            // so it is re-issued (new version, same number) with the corrected snapshot.
+            $returnedToEligible = false;
+
+            foreach ($existing as $cert) {
+                if (! in_array($cert->status, [
+                    CertificateStatus::Revoked->value,
+                    CertificateStatus::Superseded->value,
+                ], true)) {
+                    $cert->status = CertificateStatus::Eligible->value;
+                    $cert->save();
+                    $returnedToEligible = true;
+                }
+            }
+
+            if ($returnedToEligible) {
+                return;
+            }
         }
 
         Certificate::create([
