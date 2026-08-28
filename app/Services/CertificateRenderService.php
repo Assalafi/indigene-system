@@ -319,6 +319,7 @@ class CertificateRenderService
             'isHtml5ParserEnabled' => true,
             'defaultFont' => 'DejaVu Serif',
             'dpi' => 144,
+            'chroot' => base_path(),
         ]);
 
         $binary = $pdf->output();
