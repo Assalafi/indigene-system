@@ -117,14 +117,16 @@ class ApplicationController extends Controller
             $profile = $application->profile;
             $indigene = $application->indigene;
 
+            $application->delete();
+
             if ($profile) {
                 $profile->relations()->delete();
                 $profile->delete();
             }
 
-            $application->delete();
-
-            if ($indigene) {
+            // Only remove the applicant when this was their last application;
+            // other applications, certificates and consent records still reference it.
+            if ($indigene && ! IndigeneApplication::where('indigene_id', $indigene->id)->exists()) {
                 $indigene->delete();
             }
         });
