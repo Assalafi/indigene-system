@@ -57,9 +57,6 @@ class PrintEventService
             $certificate->total_prints_cached = $nextNumber;
             $certificate->save();
 
-            // Produce the watermarked copy PDF from the immutable snapshot.
-            $this->renderPrintPdf($certificate, $event, $user);
-
             $this->audit->record('certificate.printed', Certificate::class, $certificate->id, [], [
                 'print_number' => $nextNumber,
                 'copy_type' => $event->copy_type,
@@ -69,46 +66,21 @@ class PrintEventService
         });
     }
 
-    private function renderPrintPdf(Certificate $certificate, CertificatePrintEvent $event, User $user): void
+    /**
+     * Real-time rendering: the certificate PDF is produced on the fly from the
+     * immutable version snapshot and returned to the browser. Nothing is stored
+     * on disk; the print event row remains the single source of count truth.
+     */
+    public function renderRealtime(Certificate $certificate, CertificatePrintEvent $event): string
     {
-        $version = $certificate->currentVersion;
+        $version = $event->version ?? $certificate->currentVersion;
 
         if (! $version) {
-            return;
+            throw new HttpException(409, 'No issued version exists for this certificate.');
         }
 
-        try {
-            $snapshot = json_decode(\Illuminate\Support\Facades\Crypt::decryptString($version->snapshot_ciphertext), true);
-            $renderer = app(CertificateRenderService::class);
-            $pdf = $renderer->renderPdf($snapshot, null, $event->copyLabel());
+        $snapshot = json_decode(\Illuminate\Support\Facades\Crypt::decryptString($version->snapshot_ciphertext), true);
 
-            $sha = hash('sha256', $pdf);
-            $key = 'certificates/'.$certificate->id.'/copy-'.$event->print_number.'-'.substr($sha, 0, 16).'.pdf';
-
-            \Illuminate\Support\Facades\Storage::disk('private')->put($key, $pdf);
-
-            $file = \App\Models\FileAsset::create([
-                'storage_disk' => 'private',
-                'object_key' => $key,
-                'original_name' => $certificate->certificate_number.'-copy-'.$event->print_number.'.pdf',
-                'mime_type' => 'application/pdf',
-                'extension' => 'pdf',
-                'size_bytes' => strlen($pdf),
-                'sha256' => $sha,
-                'malware_scan_status' => 'not_required',
-                'malware_scanned_at' => now(),
-                'uploaded_by' => $user->id,
-                'status' => 'available',
-            ]);
-
-            $event->pdf_file_id = $file->id;
-            $event->save();
-        } catch (\Throwable $e) {
-            // PDF failure must never fake a successful print event without a file.
-            $this->audit->record('certificate.print_pdf_failed', Certificate::class, $certificate->id, [], [
-                'print_number' => $event->print_number,
-                'error' => $e->getMessage(),
-            ], 'high', $user);
-        }
+        return app(CertificateRenderService::class)->renderPdf($snapshot, null, $event->copyLabel());
     }
 }

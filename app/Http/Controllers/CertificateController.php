@@ -9,8 +9,6 @@ use App\Services\CertificateRenderService;
 use App\Services\CertificateStatusService;
 use App\Services\PrintEventService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CertificateController extends Controller
 {
@@ -135,12 +133,8 @@ class CertificateController extends Controller
             $data['reason_note'] ?? null
         );
 
-        // Serve the watermarked copy directly in the browser (inline, not a download).
-        $pdf = $event->pdfFile ?? $event->version?->pdfFile;
-
-        if (! $pdf || ! Storage::disk($pdf->storage_disk)->exists($pdf->object_key)) {
-            abort(404, 'The PDF for this print copy is not available.');
-        }
+        // Real-time render: the PDF is produced on the fly, never stored on disk.
+        $pdf = $prints->renderRealtime($certificate, $event);
 
         app(\App\Services\AuditService::class)->recordSensitiveAccess(
             Certificate::class,
@@ -150,7 +144,7 @@ class CertificateController extends Controller
             'Authorised print copy download',
         );
 
-        return response(Storage::disk($pdf->storage_disk)->get($pdf->object_key))
+        return response($pdf)
             ->header('Content-Type', 'application/pdf')
             ->header('Content-Disposition', 'inline; filename="'.$certificate->certificate_number.'-copy-'.str_pad((string) $event->print_number, 2, '0', STR_PAD_LEFT).'.pdf"');
     }
@@ -193,11 +187,8 @@ class CertificateController extends Controller
             $certificate->total_prints_cached > 0 ? 'reprint' : 'initial_issue'
         );
 
-        $pdf = $event->pdfFile ?? $event->version?->pdfFile;
-
-        if (! $pdf || ! Storage::disk($pdf->storage_disk)->exists($pdf->object_key)) {
-            abort(404, 'The PDF for this print copy is not available.');
-        }
+        // Real-time render: the PDF is produced on the fly, never stored on disk.
+        $pdf = $prints->renderRealtime($certificate, $event);
 
         app(\App\Services\AuditService::class)->recordSensitiveAccess(
             Certificate::class,
@@ -207,7 +198,7 @@ class CertificateController extends Controller
             'Authorised print copy download',
         );
 
-        return response(Storage::disk($pdf->storage_disk)->get($pdf->object_key))
+        return response($pdf)
             ->header('Content-Type', 'application/pdf')
             ->header('Content-Disposition', 'inline; filename="'.$certificate->certificate_number.'-copy-'.str_pad((string) $event->print_number, 2, '0', STR_PAD_LEFT).'.pdf"');
     }
@@ -219,18 +210,12 @@ class CertificateController extends Controller
         return view('certificates.print-result', compact('certificate', 'event'));
     }
 
-    public function download(Certificate $certificate, CertificatePrintEvent $event): StreamedResponse
+    public function download(Certificate $certificate, CertificatePrintEvent $event, PrintEventService $prints): \Symfony\Component\HttpFoundation\Response
     {
         $this->authorize('view', $certificate);
 
-        // Prefer the DOMPDF-rendered copy tied to this print event (watermarked with
-        // its copy number); fall back to the stored certificate version PDF only if the
-        // copy render failed.
-        $pdf = $event->pdfFile ?? $event->version?->pdfFile;
-
-        if (! $pdf || ! Storage::disk($pdf->storage_disk)->exists($pdf->object_key)) {
-            abort(404, 'The PDF for this print copy is not available.');
-        }
+        // Real-time render of the version this print event references; nothing stored.
+        $pdf = $prints->renderRealtime($certificate, $event);
 
         app(\App\Services\AuditService::class)->recordSensitiveAccess(
             Certificate::class,
@@ -240,10 +225,9 @@ class CertificateController extends Controller
             'Authorised print copy download',
         );
 
-        return Storage::disk($pdf->storage_disk)->download(
-            $pdf->object_key,
-            $certificate->certificate_number.'-copy-'.str_pad((string) $event->print_number, 2, '0', STR_PAD_LEFT).'.pdf'
-        );
+        return response($pdf)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'attachment; filename="'.$certificate->certificate_number.'-copy-'.str_pad((string) $event->print_number, 2, '0', STR_PAD_LEFT).'.pdf"');
     }
 
     public function suspend(Certificate $certificate, Request $request, CertificateStatusService $statuses)

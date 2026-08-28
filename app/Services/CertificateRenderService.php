@@ -7,7 +7,6 @@ use App\Models\Certificate;
 use App\Models\CertificatePrintEvent;
 use App\Models\CertificateStatusEvent;
 use App\Models\CertificateVersion;
-use App\Models\FileAsset;
 use App\Models\IndigeneProfile;
 use App\Models\LgaProfile;
 use App\Models\OfficialSignatory;
@@ -90,9 +89,6 @@ class CertificateRenderService
             $certificate->save();
 
             $pdf = $this->renderPdf($snapshot, $verificationUrl);
-            $file = $this->storePdf($pdf, $certificate, $version, $user);
-
-            $version->pdf_file_id = $file->id;
             $version->pdf_sha256 = hash('sha256', $pdf);
             $version->save();
 
@@ -303,27 +299,5 @@ class CertificateRenderService
         ]);
 
         return (new \chillerlan\QRCode\QRCode($options))->render($payload);
-    }
-
-    private function storePdf(string $pdfContent, Certificate $certificate, CertificateVersion $version, User $user): FileAsset
-    {
-        $sha = hash('sha256', $pdfContent);
-        $key = 'certificates/'.$certificate->id.'/version-'.$version->version_no.'-'.substr($sha, 0, 16).'.pdf';
-
-        Storage::disk('private')->put($key, $pdfContent);
-
-        return FileAsset::create([
-            'storage_disk' => 'private',
-            'object_key' => $key,
-            'original_name' => $certificate->certificate_number.'.pdf',
-            'mime_type' => 'application/pdf',
-            'extension' => 'pdf',
-            'size_bytes' => strlen($pdfContent),
-            'sha256' => $sha,
-            'malware_scan_status' => 'not_required',
-            'malware_scanned_at' => now(),
-            'uploaded_by' => $user->id,
-            'status' => 'available',
-        ]);
     }
 }
