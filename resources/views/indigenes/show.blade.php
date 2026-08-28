@@ -106,7 +106,6 @@
                                 <div class="review-item"><dt>District</dt><dd>{{ $profile?->district?->name ?? '—' }}</dd></div>
                                 <div class="review-item"><dt>Ward</dt><dd>{{ $profile?->ward?->name ?? '—' }}</dd></div>
                                 <div class="review-item"><dt>Village / community unit</dt><dd>{{ $profile?->unit?->name ?? '—' }}</dd></div>
-                                <div class="review-item"><dt>Hometown</dt><dd>{{ $profile?->hometown ?? '—' }}</dd></div>
                                 <div class="review-item"><dt>Indigene basis</dt><dd>{{ $profile?->indigene_basis ?? '—' }}</dd></div>
                                 <div class="review-item"><dt>Residential address</dt><dd>{{ $profile?->residential_address ?? '—' }}</dd></div>
                                 <div class="review-item"><dt>Residence</dt><dd>{{ $profile?->residence_town ?? '—' }}{{ $profile?->residenceState ? ', '.$profile->residenceState->name : '' }}</dd></div>

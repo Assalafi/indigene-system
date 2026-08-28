@@ -184,7 +184,6 @@ class ApplicationWizardController extends Controller
             'district_id' => ['required', 'uuid', 'exists:districts,id'],
             'ward_id' => ['nullable', 'uuid', 'exists:wards,id'],
             'unit_id' => ['required', 'uuid', 'exists:units,id'],
-            'hometown' => ['nullable', 'string', 'max:180'],
             'guardian_name' => ['required', 'string', 'max:180'],
             'guardian_phone' => ['nullable', 'string', 'max:20'],
             'photo' => ['nullable', 'image', 'max:5120'],
@@ -253,7 +252,6 @@ class ApplicationWizardController extends Controller
             'district_id' => $districtRecord->id,
             'ward_id' => $ward?->id,
             'unit_id' => $unit->id,
-            'hometown' => $data['hometown'] ?? null,
         ]);
 
         if ($request->hasFile('photo')) {

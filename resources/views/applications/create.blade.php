@@ -154,11 +154,6 @@
                                 </select>
                                 @error('unit_id')<span class="text-danger small">{{ $message }}</span>@enderror
                             </div>
-                            <div class="col-md-6">
-                                <label for="hometown" class="form-label">Hometown <span class="text-secondary">(optional)</span></label>
-                                <input class="form-control" id="hometown" name="hometown" type="text" maxlength="180"
-                                       value="{{ old('hometown', $profile?->hometown) }}">
-                            </div>
                         </div>
                     </div>
                 </div>
