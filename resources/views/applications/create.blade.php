@@ -27,9 +27,9 @@
                         </h5>
                         <div class="row g-3">
                             <div class="col-md-4">
-                                <label for="nin" class="form-label">NIN <span class="required-indicator">Required</span></label>
+                                <label for="nin" class="form-label">NIN <span class="text-secondary">(optional)</span></label>
                                 <input class="form-control nin-input" id="nin" name="nin" type="text" inputmode="numeric"
-                                       maxlength="11" placeholder="11 digits" value="{{ old('nin') }}" required>
+                                       maxlength="11" placeholder="11 digits" value="{{ old('nin') }}">
                                 @error('nin')<span class="text-danger small">{{ $message }}</span>@enderror
                             </div>
                             <div class="col-md-4">
@@ -70,9 +70,9 @@
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label for="phone" class="form-label">Phone <span class="required-indicator">Required</span></label>
+                                <label for="phone" class="form-label">Phone <span class="text-secondary">(optional)</span></label>
                                 <input class="form-control phone-input" id="phone" name="phone" type="text" maxlength="20"
-                                       placeholder="+2348012345678" value="{{ old('phone', $profile->phone) }}" required>
+                                       placeholder="+2348012345678" value="{{ old('phone', $profile->phone) }}">
                             </div>
                             <div class="col-md-4">
                                 <label for="email" class="form-label">Email <span class="text-secondary">(optional)</span></label>
@@ -103,6 +103,16 @@
                             Issuing authority: <strong>{{ $lga->name }} LGA, {{ $state->name }} State</strong>
                         </div>
                         <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="district_id" class="form-label">District <span class="text-secondary">(optional)</span></label>
+                                <select class="form-select" id="district_id" name="district_id">
+                                    <option value="">— None —</option>
+                                    @foreach ($districts as $district)
+                                        <option value="{{ $district->id }}" @selected(old('district_id', $profile->district_id) === $district->id)>{{ $district->name }}</option>
+                                    @endforeach
+                                </select>
+                                @error('district_id')<span class="text-danger small">{{ $message }}</span>@enderror
+                            </div>
                             <div class="col-md-6">
                                 <label for="ward_id" class="form-label">Ward <span class="required-indicator">Required</span></label>
                                 <select class="form-select" id="ward_id" name="ward_id" required>
@@ -136,19 +146,19 @@
                     <div class="card-body p-4">
                         <h5 class="form-section-title">
                             <span class="material-symbols-outlined">escalator_warning</span>
-                            Guardian
+                            Guardian / Parent
                         </h5>
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label for="guardian_name" class="form-label">Guardian name <span class="required-indicator">Required</span></label>
+                                <label for="guardian_name" class="form-label">Guardian / parent name <span class="required-indicator">Required</span></label>
                                 <input class="form-control" id="guardian_name" name="guardian_name" type="text" maxlength="180"
                                        value="{{ old('guardian_name', $guardian?->full_name) }}" required>
                                 @error('guardian_name')<span class="text-danger small">{{ $message }}</span>@enderror
                             </div>
                             <div class="col-md-6">
-                                <label for="guardian_phone" class="form-label">Guardian phone <span class="required-indicator">Required</span></label>
+                                <label for="guardian_phone" class="form-label">Guardian / parent phone <span class="text-secondary">(optional)</span></label>
                                 <input class="form-control phone-input" id="guardian_phone" name="guardian_phone" type="text" maxlength="20"
-                                       placeholder="+2348012345678" value="{{ old('guardian_phone', $guardian?->phone) }}" required>
+                                       placeholder="+2348012345678" value="{{ old('guardian_phone', $guardian?->phone) }}">
                                 @error('guardian_phone')<span class="text-danger small">{{ $message }}</span>@enderror
                             </div>
                         </div>

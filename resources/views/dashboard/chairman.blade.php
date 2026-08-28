@@ -19,29 +19,31 @@
     <div class="row g-3 mb-4">
         @php
             $cards = [
-                ['label' => 'Awaiting your review', 'value' => number_format($stats['awaiting_review']), 'icon' => 'hourglass_top', 'class' => 'bg-warning'],
-                ['label' => 'Oldest pending (days)', 'value' => $stats['oldest_pending_days'], 'icon' => 'schedule', 'class' => 'bg-brand'],
-                ['label' => 'Approved this month', 'value' => number_format($stats['approved_this_month']), 'icon' => 'task_alt', 'class' => 'bg-info'],
-                ['label' => 'Rejected this month', 'value' => number_format($stats['rejected_this_month']), 'icon' => 'cancel', 'class' => 'bg-danger'],
-                ['label' => 'Certificates this month', 'value' => number_format($stats['certificates_this_month']), 'icon' => 'verified', 'class' => 'bg-success'],
-                ['label' => 'Reprints this month', 'value' => number_format($stats['reprints_this_month']), 'icon' => 'print', 'class' => 'bg-secondary'],
-                ['label' => 'Registered indigenes', 'value' => number_format($stats['indigenes_total']), 'icon' => 'groups', 'class' => 'bg-brand-navy'],
-                ['label' => 'Wards / units', 'value' => number_format($stats['wards_total']).' / '.number_format($stats['units_total']), 'icon' => 'map', 'class' => 'bg-brand'],
+                ['label' => 'Awaiting your review', 'value' => number_format($stats['awaiting_review']), 'icon' => 'hourglass_top', 'class' => 'bg-warning', 'href' => route('approvals.queue')],
+                ['label' => 'Oldest pending (days)', 'value' => $stats['oldest_pending_days'], 'icon' => 'schedule', 'class' => 'bg-brand', 'href' => route('approvals.queue')],
+                ['label' => 'Approved this month', 'value' => number_format($stats['approved_this_month']), 'icon' => 'task_alt', 'class' => 'bg-info', 'href' => route('applications.index')],
+                ['label' => 'Rejected this month', 'value' => number_format($stats['rejected_this_month']), 'icon' => 'cancel', 'class' => 'bg-danger', 'href' => route('applications.index')],
+                ['label' => 'Certificates this month', 'value' => number_format($stats['certificates_this_month']), 'icon' => 'verified', 'class' => 'bg-success', 'href' => route('certificates.index')],
+                ['label' => 'Reprints this month', 'value' => number_format($stats['reprints_this_month']), 'icon' => 'print', 'class' => 'bg-secondary', 'href' => route('certificates.print-history')],
+                ['label' => 'Registered indigenes', 'value' => number_format($stats['indigenes_total']), 'icon' => 'groups', 'class' => 'bg-brand-navy', 'href' => route('indigenes.index')],
+                ['label' => 'Wards / units', 'value' => number_format($stats['wards_total']).' / '.number_format($stats['units_total']), 'icon' => 'map', 'class' => 'bg-brand', 'href' => route('geography.wards')],
             ];
         @endphp
         @foreach ($cards as $card)
             <div class="col-xxl-3 col-xl-4 col-md-6">
-                <div class="stat-card h-100">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="stat-icon {{ $card['class'] }}">
-                            <span class="material-symbols-outlined" style="color:#fff;">{{ $card['icon'] }}</span>
-                        </div>
-                        <div class="min-w-0">
-                            <div class="stat-value">{{ $card['value'] }}</div>
-                            <div class="stat-label">{{ $card['label'] }}</div>
+                <a href="{{ $card['href'] }}" class="text-decoration-none">
+                    <div class="stat-card h-100">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="stat-icon {{ $card['class'] }}">
+                                <span class="material-symbols-outlined" style="color:#fff;">{{ $card['icon'] }}</span>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="stat-value">{{ $card['value'] }}</div>
+                                <div class="stat-label">{{ $card['label'] }}</div>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </a>
             </div>
         @endforeach
     </div>

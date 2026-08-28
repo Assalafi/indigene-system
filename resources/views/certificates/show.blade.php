@@ -91,32 +91,17 @@
 
                     @if ($canPrint)
                         <form method="POST" action="{{ route('certificates.print-events', $certificate) }}"
-                              data-confirm="Generate an authorised print copy? This is counted as a print occurrence.">
+                              target="_blank" id="print-form"
+                              data-confirm="Generate a printable copy? This is counted as a print occurrence.">
                             @csrf
                             <input type="hidden" name="idempotency_key" value="{{ str()->uuid() }}">
-                            @if ($certificate->total_prints_cached > 0)
-                                <div class="mb-2">
-                                    <label for="reason_code" class="form-label small">Reprint reason <span class="required-indicator">Required</span></label>
-                                    <select class="form-select form-select-sm" id="reason_code" name="reason_code" required>
-                                        <option value="">Select reason</option>
-                                        <option value="lost_copy">Lost original copy</option>
-                                        <option value="damaged_copy">Damaged copy</option>
-                                        <option value="official_request">Official request</option>
-                                        <option value="correction_amendment">Amendment reissue</option>
-                                        <option value="other">Other</option>
-                                    </select>
-                                </div>
-                                <div class="mb-3">
-                                    <input class="form-control form-control-sm" name="reason_note" type="text" placeholder="Optional note" maxlength="1000">
-                                </div>
-                            @endif
                             <button class="btn btn-brand-green w-100 rounded-3 fw-semibold" type="submit">
                                 <i class="ri-printer-line me-1"></i>
-                                {{ $certificate->total_prints_cached > 0 ? 'Generate reprint copy' : 'Generate print copy (COPY 01)' }}
+                                Print certificate
                             </button>
                         </form>
                         <p class="small text-secondary mt-2 mb-0">
-                            Each click creates one server-authorised printable copy and is recorded.
+                            Opens the approved certificate in your browser. Every copy is counted and recorded.
                         </p>
                     @endif
 

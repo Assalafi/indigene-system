@@ -55,9 +55,6 @@ class ApplicationDecisionController extends Controller
             'reason_code' => ['nullable', 'string', 'max:60'],
             'corrections' => ['nullable', 'array'],
             'corrections.*' => ['string', 'max:200'],
-            'checklist' => ['required_if:decision,approve', 'array'],
-        ], [
-            'checklist.required_if' => 'Complete the approval checklist before approving.',
         ]);
 
         $user = auth()->user();
@@ -67,7 +64,7 @@ class ApplicationDecisionController extends Controller
             'approve' => $this->workflow->approve(
                 $application,
                 $user,
-                $data['checklist'],
+                [],
                 $data['public_comment'] ?? null,
                 $data['internal_comment'] ?? null,
                 $isOverride

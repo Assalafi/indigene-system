@@ -511,8 +511,6 @@
             @endif
             @if ($districtName !== '')
                 of <strong>{{ $districtName }}</strong> District
-            @elseif ($wardName !== '')
-                of <strong>{{ $wardName }}</strong> Ward
             @endif
         </div>
 

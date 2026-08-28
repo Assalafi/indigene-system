@@ -95,7 +95,7 @@ class ApplicationWorkflowService
         }
     }
 
-    public function approve(IndigeneApplication $application, User $user, array $checklist, ?string $publicComment = null, ?string $internalComment = null, bool $isOverride = false): void
+    public function approve(IndigeneApplication $application, User $user, array $checklist = [], ?string $publicComment = null, ?string $internalComment = null, bool $isOverride = false): void
     {
         if ($user->id === $application->created_by && ! $user->isSystemAdmin()) {
             throw new HttpException(403, 'You cannot approve an application you created.');

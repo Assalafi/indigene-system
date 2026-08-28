@@ -114,17 +114,15 @@ class CertificateController extends Controller
         return view('certificates.print-history', compact('events'));
     }
 
-    public function createPrint(Certificate $certificate, Request $request, PrintEventService $prints)
+    public function createPrint(Certificate $certificate, Request $request, PrintEventService $prints): \Symfony\Component\HttpFoundation\Response
     {
         if (! auth()->user()->can('certificate.print-action', $certificate)) {
             abort(403, 'This certificate is not eligible for printing.');
         }
 
         $data = $request->validate([
-            'reason_code' => ['required_if:existing_prints,true', 'nullable', 'string', 'max:60'],
+            'reason_code' => ['nullable', 'string', 'max:60'],
             'reason_note' => ['nullable', 'string', 'max:1000'],
-        ], [
-            'reason_code.required_if' => 'A reason is required for reprints.',
         ]);
 
         $idempotencyKey = $request->input('idempotency_key') ?? (string) str()->uuid();
@@ -132,14 +130,28 @@ class CertificateController extends Controller
             $certificate,
             auth()->user(),
             $idempotencyKey,
-            $data['reason_code'] ?? 'initial_issue',
+            $data['reason_code'] ?? ($certificate->total_prints_cached > 0 ? 'reprint' : 'initial_issue'),
             $data['reason_note'] ?? null
         );
 
-        return redirect()->route('certificates.print-result', [
-            'certificate' => $certificate,
-            'event' => $event,
-        ]);
+        // Serve the watermarked copy directly in the browser (inline, not a download).
+        $pdf = $event->pdfFile ?? $event->version?->pdfFile;
+
+        if (! $pdf || ! Storage::disk($pdf->storage_disk)->exists($pdf->object_key)) {
+            abort(404, 'The PDF for this print copy is not available.');
+        }
+
+        app(\App\Services\AuditService::class)->recordSensitiveAccess(
+            Certificate::class,
+            $certificate->id,
+            'certificate_pdf',
+            'download',
+            'Authorised print copy download',
+        );
+
+        return response(Storage::disk($pdf->storage_disk)->get($pdf->object_key))
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'inline; filename="'.$certificate->certificate_number.'-copy-'.str_pad((string) $event->print_number, 2, '0', STR_PAD_LEFT).'.pdf"');
     }
 
     public function printResult(Certificate $certificate, CertificatePrintEvent $event)

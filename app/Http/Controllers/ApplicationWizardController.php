@@ -119,6 +119,7 @@ class ApplicationWizardController extends Controller
             'indigene' => $indigene,
             'lga' => $lga,
             'state' => $state,
+            'districts' => District::where('lga_id', $lga->id)->where('status', 'active')->orderBy('name')->get(),
             'wards' => Ward::where('lga_id', $lga->id)->where('status', 'active')->orderBy('name')->get(),
             'units' => Unit::where('lga_id', $lga->id)->where('status', 'active')->where('category', '!=', 'polling_unit')->orderBy('name')->get(),
             'guardian' => $profile->relations()->where('relation_type', 'guardian')->first(),
@@ -133,7 +134,7 @@ class ApplicationWizardController extends Controller
 
         $data = $request->validate([
             'acknowledge' => ['accepted'],
-            'nin' => ['required', 'string', 'size:11', 'regex:/^\d{11}$/'],
+            'nin' => ['nullable', 'string', 'digits:11'],
             'surname' => ['required', 'string', 'min:2', 'max:100'],
             'first_name' => ['required', 'string', 'min:2', 'max:100'],
             'middle_name' => ['nullable', 'string', 'max:100'],
@@ -141,22 +142,30 @@ class ApplicationWizardController extends Controller
             'sex' => ['required', 'in:male,female'],
             'marital_status' => ['nullable', 'string', 'max:30'],
             'nationality' => ['nullable', 'string', 'max:80'],
-            'phone' => ['required', 'string', 'max:20'],
+            'phone' => ['nullable', 'string', 'max:20'],
             'email' => ['nullable', 'email', 'max:190'],
+            'district_id' => ['nullable', 'uuid', 'exists:districts,id'],
             'ward_id' => ['required', 'uuid', 'exists:wards,id'],
             'unit_id' => ['required', 'uuid', 'exists:units,id'],
             'hometown' => ['nullable', 'string', 'max:180'],
             'guardian_name' => ['required', 'string', 'max:180'],
-            'guardian_phone' => ['required', 'string', 'max:20'],
+            'guardian_phone' => ['nullable', 'string', 'max:20'],
             'photo' => ['nullable', 'image', 'max:5120'],
         ], [
             'acknowledge.accepted' => 'You must confirm the declaration before submitting.',
-            'nin.required' => 'An 11-digit NIN is required.',
-            'nin.size' => 'The NIN must be exactly 11 digits.',
-            'nin.regex' => 'The NIN must contain only digits.',
-            'guardian_name.required' => 'A guardian is required.',
-            'guardian_phone.required' => 'A guardian phone number is required.',
+            'nin.digits' => 'The NIN must be exactly 11 digits when provided.',
+            'guardian_name.required' => 'A guardian or parent is required.',
         ]);
+
+        $district = $data['district_id'] ?? null;
+
+        if ($district) {
+            $districtRecord = District::find($district);
+
+            if ($districtRecord && $districtRecord->lga_id !== $lga->id) {
+                throw ValidationException::withMessages(['district_id' => 'The selected district does not belong to your LGA.']);
+            }
+        }
 
         $ward = Ward::findOrFail($data['ward_id']);
         $unit = Unit::findOrFail($data['unit_id']);
@@ -175,16 +184,18 @@ class ApplicationWizardController extends Controller
 
         $indigene = $application->indigene;
 
-        try {
-            $indigene->nin_ciphertext = $this->nin->encrypt($data['nin']);
-            $indigene->nin_hash = $this->nin->hash($data['nin']);
-            $indigene->nin_last4 = $this->nin->last4($data['nin']);
-            $indigene->nin_verification_status = 'unverified';
-            $indigene->save();
-        } catch (\Illuminate\Database\UniqueConstraintViolationException) {
-            throw ValidationException::withMessages([
-                'nin' => 'This NIN is already registered to another record in the system.',
-            ]);
+        if ($request->filled('nin')) {
+            try {
+                $indigene->nin_ciphertext = $this->nin->encrypt($data['nin']);
+                $indigene->nin_hash = $this->nin->hash($data['nin']);
+                $indigene->nin_last4 = $this->nin->last4($data['nin']);
+                $indigene->nin_verification_status = 'unverified';
+                $indigene->save();
+            } catch (\Illuminate\Database\UniqueConstraintViolationException) {
+                throw ValidationException::withMessages([
+                    'nin' => 'This NIN is already registered to another record in the system.',
+                ]);
+            }
         }
 
         $profile = $application->profile;
@@ -197,8 +208,9 @@ class ApplicationWizardController extends Controller
             'sex' => $data['sex'],
             'marital_status' => $data['marital_status'] ?? null,
             'nationality' => $data['nationality'] ?? 'Nigerian',
-            'phone' => $data['phone'],
+            'phone' => $data['phone'] ?? null,
             'email' => $data['email'] ?? null,
+            'district_id' => $district,
             'ward_id' => $ward->id,
             'unit_id' => $unit->id,
             'hometown' => $data['hometown'] ?? null,
@@ -215,7 +227,7 @@ class ApplicationWizardController extends Controller
             ['profile_id' => $profile->id, 'relation_type' => 'guardian'],
             [
                 'full_name' => $data['guardian_name'],
-                'phone' => $data['guardian_phone'],
+                'phone' => $data['guardian_phone'] ?? null,
                 'is_primary' => true,
             ]
         );

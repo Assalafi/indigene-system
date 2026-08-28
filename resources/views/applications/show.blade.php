@@ -100,10 +100,11 @@
                                 <div class="review-item"><dt>Sex</dt><dd>{{ $profile->sex ? ucfirst($profile->sex) : '—' }}</dd></div>
                                 <div class="review-item"><dt>Phone</dt><dd>{{ $profile->phone ?? '—' }}</dd></div>
                                 <div class="review-item"><dt>Email</dt><dd>{{ $profile->email ?? '—' }}</dd></div>
+                                <div class="review-item"><dt>District</dt><dd>{{ $profile->district?->name ?? '—' }}</dd></div>
                                 <div class="review-item"><dt>Ward</dt><dd>{{ $profile->ward?->name ?? '—' }}</dd></div>
                                 <div class="review-item"><dt>Village / unit</dt><dd>{{ $profile->unit?->name ?? '—' }}</dd></div>
                                 @php $guardian = $profile->relations->firstWhere('relation_type', 'guardian'); @endphp
-                                <div class="review-item"><dt>Guardian</dt>
+                                <div class="review-item"><dt>Guardian / Parent</dt>
                                     <dd>
                                         @if ($guardian)
                                             {{ $guardian->full_name }}@if ($guardian->phone) &middot; {{ $guardian->phone }}@endif
@@ -248,24 +249,11 @@
                                 </select>
                             </div>
 
-                            <div id="approve-checklist" class="d-none mb-3">
-                                <label class="form-label fw-semibold">Approval checklist <span class="required-indicator">Required</span></label>
-                                @php $items = [
-                                    'Photograph is clear and belongs to the applicant',
-                                    'NIN format and verification state meet policy',
-                                    'Name and date of birth are consistent with evidence',
-                                    'Selected LGA, ward and unit are valid',
-                                    'Guardian details are complete',
-                                    'Duplicate flags are resolved or accepted',
-                                    'Applicant/operator declaration was captured',
-                                    'I am not the creator of this application',
-                                ]; @endphp
-                                @foreach ($items as $index => $item)
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="checklist[]" value="{{ $index + 1 }}" id="check-{{ $index }}">
-                                        <label class="form-check-label small" for="check-{{ $index }}">{{ $item }}</label>
-                                    </div>
-                                @endforeach
+                            <div class="mb-3">
+                                <div class="alert alert-light border small mb-0">
+                                    Approval is recorded with your identity, scope and timestamp. The applicant is
+                                    notified and the certificate becomes eligible immediately.
+                                </div>
                             </div>
 
                             <div class="mb-3">
@@ -301,15 +289,3 @@
         </div>
     </div>
 @endsection
-
-@push('scripts')
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        var decision = document.getElementById('decision');
-        var checklist = document.getElementById('approve-checklist');
-        decision.addEventListener('change', function () {
-            checklist.classList.toggle('d-none', decision.value !== 'approve');
-        });
-    });
-</script>
-@endpush
