@@ -320,6 +320,8 @@ class CertificateRenderService
             'defaultFont' => 'DejaVu Serif',
             'dpi' => 144,
             'chroot' => base_path(),
+            'fontDir' => storage_path('fonts'),
+            'fontCache' => storage_path('fonts'),
         ]);
 
         $binary = $pdf->output();
