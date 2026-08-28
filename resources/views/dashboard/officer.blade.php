@@ -9,9 +9,6 @@
         <a href="{{ route('applications.create') }}" class="btn btn-primary-div text-white py-2 px-4 rounded-3 fw-semibold">
             <i class="ri-user-add-line me-1"></i> Register new indigene
         </a>
-        <a href="{{ route('applications.index', ['tab' => 'my-drafts']) }}" class="btn btn-outline-secondary rounded-3 fw-semibold">
-            <i class="ri-draft-line me-1"></i> My drafts
-        </a>
         <a href="{{ route('applications.index', ['tab' => 'corrections']) }}" class="btn btn-outline-secondary rounded-3 fw-semibold">
             <i class="ri-edit-note-line me-1"></i> Corrections requested
         </a>
@@ -20,7 +17,6 @@
     <div class="row g-3 mb-4">
         @php
             $cards = [
-                ['label' => 'My drafts', 'value' => number_format($stats['drafts']), 'icon' => 'draft', 'class' => 'bg-secondary', 'href' => route('applications.index', ['tab' => 'my-drafts'])],
                 ['label' => 'Submitted / pending', 'value' => number_format($stats['submitted_pending']), 'icon' => 'hourglass_top', 'class' => 'bg-warning', 'href' => route('applications.index', ['tab' => 'all'])],
                 ['label' => 'Correction required', 'value' => number_format($stats['correction_required']), 'icon' => 'edit_note', 'class' => 'bg-brand', 'href' => route('applications.index', ['tab' => 'corrections'])],
                 ['label' => 'Approved & ready to print', 'value' => number_format($stats['approved_ready_to_print']), 'icon' => 'task_alt', 'class' => 'bg-success', 'href' => route('certificates.index')],

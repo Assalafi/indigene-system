@@ -55,11 +55,9 @@ class ApplicationController extends Controller
             $query->whereBetween('created_at', [$request->input('from').' 00:00:00', $request->input('to').' 23:59:59']);
         }
 
-        $tab = $request->input('tab', $user->hasRole('lga_indigene_officer') ? 'my-drafts' : 'all');
+        $tab = $request->input('tab', 'all');
 
-        if ($tab === 'my-drafts') {
-            $query->where('created_by', $user->id)->where('status', ApplicationStatus::Draft);
-        } elseif ($tab === 'awaiting-review') {
+        if ($tab === 'awaiting-review') {
             $query->whereIn('status', [ApplicationStatus::PendingChairman, ApplicationStatus::PendingSystemAdmin])
                 ->where('created_by', '!=', $user->id);
         } elseif ($tab === 'corrections') {
@@ -97,5 +95,40 @@ class ApplicationController extends Controller
         $canDecide = auth()->user()->can('decide', $application);
 
         return view('applications.show', compact('application', 'canDecide'));
+    }
+
+    public function destroy(IndigeneApplication $application)
+    {
+        $this->authorize('delete', $application);
+
+        if ($application->status === \App\Enums\ApplicationStatus::Approved) {
+            abort(409, 'An approved application cannot be deleted.');
+        }
+
+        app(\App\Services\AuditService::class)->record('application.deleted', IndigeneApplication::class, $application->id, [], [], 'high');
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($application) {
+            $application->statusHistories()->delete();
+            $application->reviews()->delete();
+            $application->duplicateFlags()->delete();
+            $application->consentRecords()->delete();
+            $application->documents()->delete();
+
+            $profile = $application->profile;
+            $indigene = $application->indigene;
+
+            if ($profile) {
+                $profile->relations()->delete();
+                $profile->delete();
+            }
+
+            $application->delete();
+
+            if ($indigene) {
+                $indigene->delete();
+            }
+        });
+
+        return redirect()->route('applications.index')->with('status', 'Application deleted.');
     }
 }

@@ -11,7 +11,6 @@
 @section('content')
     <ul class="nav nav-tabs mb-3">
         <li class="nav-item"><a class="nav-link {{ $tab === 'all' ? 'active' : '' }}" href="{{ route('applications.index', ['tab' => 'all']) }}">All</a></li>
-        <li class="nav-item"><a class="nav-link {{ $tab === 'my-drafts' ? 'active' : '' }}" href="{{ route('applications.index', ['tab' => 'my-drafts']) }}">My drafts</a></li>
         <li class="nav-item"><a class="nav-link {{ $tab === 'awaiting-review' ? 'active' : '' }}" href="{{ route('applications.index', ['tab' => 'awaiting-review']) }}">Awaiting review</a></li>
         <li class="nav-item"><a class="nav-link {{ $tab === 'corrections' ? 'active' : '' }}" href="{{ route('applications.index', ['tab' => 'corrections']) }}">Corrections</a></li>
     </ul>
@@ -81,7 +80,18 @@
                                         —
                                     @endif
                                 </td>
-                                <td><a href="{{ route('applications.show', $app) }}" class="btn btn-sm btn-outline-secondary">Open</a></td>
+                                <td class="text-end">
+                                    <div class="d-flex gap-2 justify-content-end">
+                                        <a href="{{ route('applications.show', $app) }}" class="btn btn-sm btn-outline-secondary">Open</a>
+                                        @can('delete', $app)
+                                            <form method="POST" action="{{ route('applications.delete', $app) }}"
+                                                  data-confirm="Delete application {{ $app->application_number }} and its applicant record? This cannot be undone.">
+                                                @csrf
+                                                <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+                                            </form>
+                                        @endcan
+                                    </div>
+                                </td>
                             </tr>
                         @empty
                             <tr><td colspan="8">

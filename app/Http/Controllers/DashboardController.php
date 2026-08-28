@@ -120,7 +120,6 @@ class DashboardController extends Controller
         abort_if(! $lga, 403, 'No active LGA assignment.');
 
         $stats = [
-            'drafts' => IndigeneApplication::where('created_by', $user->id)->where('status', 'draft')->count(),
             'submitted_pending' => IndigeneApplication::where('lga_id', $lga->id)->whereIn('status', ['pending_chairman', 'pending_system_admin'])->count(),
             'correction_required' => IndigeneApplication::where('created_by', $user->id)->where('status', 'changes_requested')->count(),
             'approved_ready_to_print' => IndigeneApplication::where('lga_id', $lga->id)->where('status', 'approved')->count(),

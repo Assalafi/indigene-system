@@ -21,8 +21,8 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Simple one-screen onboarding. Identity + origin + guardian only.
- * Submitting routes the application for LGA approval in one step.
+ * One-screen onboarding, no draft step. The application is created and
+ * submitted for LGA approval in a single action.
  */
 class ApplicationWizardController extends Controller
 {
@@ -60,69 +60,95 @@ class ApplicationWizardController extends Controller
             abort(403, 'You need an active LGA assignment to register indigenes.');
         }
 
-        $indigene = Indigene::create([
-            'registry_number' => 'TMP-'.\Illuminate\Support\Str::uuid(),
-            'origin_state_id' => $state->id,
-            'origin_lga_id' => $lga->id,
-            'lifecycle_status' => 'provisional',
-            'created_by' => auth()->id(),
+        return view('applications.create', [
+            'application' => null,
+            'profile' => null,
+            'indigene' => null,
+            'lga' => $lga,
+            'state' => $state,
+            'districts' => District::where('lga_id', $lga->id)->where('status', 'active')->orderBy('name')->get(),
+            'wards' => Ward::where('lga_id', $lga->id)->where('status', 'active')->orderBy('name')->get(),
+            'units' => Unit::where('lga_id', $lga->id)->where('status', 'active')->where('category', '!=', 'polling_unit')->orderBy('name')->get(),
+            'guardian' => null,
+            'creating' => true,
         ]);
+    }
 
-        $indigene->registry_number = $this->profiles->registryNumber($indigene);
-        $indigene->save();
+    public function store(Request $request)
+    {
+        $this->authorize('create', IndigeneApplication::class);
 
-        $profile = IndigeneProfile::create([
-            'indigene_id' => $indigene->id,
-            'version_no' => 1,
-            'nationality' => 'Nigerian',
-            'origin_state_id' => $state->id,
-            'origin_lga_id' => $lga->id,
-            'profile_status' => 'draft',
-            'is_current' => false,
-            'created_by' => auth()->id(),
-        ]);
+        $lga = auth()->user()->activeLga();
 
-        $application = IndigeneApplication::create([
-            'application_number' => $this->profiles->applicationNumber(),
-            'indigene_id' => $indigene->id,
-            'profile_id' => $profile->id,
-            'lga_id' => $lga->id,
-            'application_type' => 'onboarding',
-            'status' => 'draft',
-            'approval_route' => auth()->user()->hasRole('lga_chairman') ? 'admin_only' : 'chairman_or_admin',
-            'created_by' => auth()->id(),
-            'last_saved_step' => 1,
-        ]);
+        if (! $lga && auth()->user()->isSystemAdmin()) {
+            $lga = Lga::where('status', 'active')->find($request->input('lga_id'));
+        }
 
-        return $this->form($application);
+        $state = $lga?->state;
+
+        if (! $lga || ! $state) {
+            abort(403, 'You need an active LGA assignment to register indigenes.');
+        }
+
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($lga, $state, $request) {
+            $indigene = Indigene::create([
+                'registry_number' => 'TMP-'.\Illuminate\Support\Str::uuid(),
+                'origin_state_id' => $state->id,
+                'origin_lga_id' => $lga->id,
+                'lifecycle_status' => 'provisional',
+                'created_by' => auth()->id(),
+            ]);
+
+            $indigene->registry_number = $this->profiles->registryNumber($indigene);
+            $indigene->save();
+
+            $profile = IndigeneProfile::create([
+                'indigene_id' => $indigene->id,
+                'version_no' => 1,
+                'nationality' => 'Nigerian',
+                'origin_state_id' => $state->id,
+                'origin_lga_id' => $lga->id,
+                'profile_status' => 'draft',
+                'is_current' => false,
+                'created_by' => auth()->id(),
+            ]);
+
+            $application = IndigeneApplication::create([
+                'application_number' => $this->profiles->applicationNumber(),
+                'indigene_id' => $indigene->id,
+                'profile_id' => $profile->id,
+                'lga_id' => $lga->id,
+                'application_type' => 'onboarding',
+                'status' => 'draft',
+                'approval_route' => auth()->user()->hasRole('lga_chairman') ? 'admin_only' : 'chairman_or_admin',
+                'created_by' => auth()->id(),
+                'last_saved_step' => 1,
+            ]);
+
+            return $this->populateAndSubmit($application, $request);
+        });
     }
 
     public function edit(IndigeneApplication $application)
     {
         $this->authorize('update', $application);
 
-        return $this->form($application);
-    }
-
-    private function form(IndigeneApplication $application)
-    {
         $application->load('profile', 'indigene', 'lga.state');
 
-        $profile = $application->profile;
-        $indigene = $application->indigene;
         $lga = $application->lga;
         $state = $lga->state;
 
         return view('applications.create', [
             'application' => $application,
-            'profile' => $profile,
-            'indigene' => $indigene,
+            'profile' => $application->profile,
+            'indigene' => $application->indigene,
             'lga' => $lga,
             'state' => $state,
             'districts' => District::where('lga_id', $lga->id)->where('status', 'active')->orderBy('name')->get(),
             'wards' => Ward::where('lga_id', $lga->id)->where('status', 'active')->orderBy('name')->get(),
             'units' => Unit::where('lga_id', $lga->id)->where('status', 'active')->where('category', '!=', 'polling_unit')->orderBy('name')->get(),
-            'guardian' => $profile->relations()->where('relation_type', 'guardian')->first(),
+            'guardian' => $application->profile->relations()->where('relation_type', 'guardian')->first(),
+            'creating' => false,
         ]);
     }
 
@@ -130,6 +156,11 @@ class ApplicationWizardController extends Controller
     {
         $this->authorize('update', $application);
 
+        return $this->populateAndSubmit($application, $request);
+    }
+
+    private function populateAndSubmit(IndigeneApplication $application, Request $request)
+    {
         $lga = $application->lga;
 
         $data = $request->validate([
@@ -232,7 +263,6 @@ class ApplicationWizardController extends Controller
             ]
         );
 
-        // Declaration + notice acknowledgement (single screen).
         $application->declaration_version = '1.0';
         $application->declaration_accepted_at = now();
         $application->save();
@@ -257,7 +287,7 @@ class ApplicationWizardController extends Controller
         app(ApplicationWorkflowService::class)->submit($application, auth()->user());
 
         return redirect()->route('applications.show', $application)
-            ->with('status', 'Application '.$application->application_number.' has been submitted for review.');
+            ->with('status', 'Application '.$application->application_number.' has been submitted for approval.');
     }
 
     /**
@@ -268,7 +298,7 @@ class ApplicationWizardController extends Controller
         return $this->edit($application);
     }
 
-    public function store(IndigeneApplication $application, int $step, Request $request)
+    public function storeLegacy(IndigeneApplication $application, int $step, Request $request)
     {
         return $this->saveAndSubmit($application, $request);
     }

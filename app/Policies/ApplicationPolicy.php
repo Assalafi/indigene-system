@@ -67,6 +67,17 @@ class ApplicationPolicy
         return $this->active($user) && $user->can('application.review-duplicates');
     }
 
+    public function delete(User $user, IndigeneApplication $application): bool
+    {
+        if ($application->status === ApplicationStatus::Approved) {
+            return false;
+        }
+
+        return $this->active($user)
+            && ($application->created_by === $user->id || $user->isSystemAdmin())
+            && ($user->isSystemAdmin() || $this->sameLga($user, $application->lga_id));
+    }
+
     public function resolveDuplicate(User $user, IndigeneApplication $application): bool
     {
         return $this->active($user)

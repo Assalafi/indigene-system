@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Certificate;
 use App\Models\CertificatePrintEvent;
+use App\Models\IndigeneApplication;
 use App\Services\CertificateRenderService;
 use App\Services\CertificateStatusService;
 use App\Services\PrintEventService;
@@ -135,6 +136,63 @@ class CertificateController extends Controller
         );
 
         // Serve the watermarked copy directly in the browser (inline, not a download).
+        $pdf = $event->pdfFile ?? $event->version?->pdfFile;
+
+        if (! $pdf || ! Storage::disk($pdf->storage_disk)->exists($pdf->object_key)) {
+            abort(404, 'The PDF for this print copy is not available.');
+        }
+
+        app(\App\Services\AuditService::class)->recordSensitiveAccess(
+            Certificate::class,
+            $certificate->id,
+            'certificate_pdf',
+            'download',
+            'Authorised print copy download',
+        );
+
+        return response(Storage::disk($pdf->storage_disk)->get($pdf->object_key))
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'inline; filename="'.$certificate->certificate_number.'-copy-'.str_pad((string) $event->print_number, 2, '0', STR_PAD_LEFT).'.pdf"');
+    }
+
+    public function printForApplication(\App\Models\IndigeneApplication $application, Request $request, PrintEventService $prints, CertificateRenderService $renderer)
+    {
+        $this->authorize('view', $application);
+
+        $certificate = $application->certificate;
+
+        if (! $certificate) {
+            abort(409, 'This application has not been approved.');
+        }
+
+        // If eligible but not yet issued, issue it in this action, then print.
+        if ($certificate->status === \App\Enums\CertificateStatus::Eligible) {
+            if (! auth()->user()->can('issue', $certificate)) {
+                abort(403, 'You are not authorised to issue certificates.');
+            }
+
+            try {
+                $renderer->issue($certificate, auth()->user());
+            } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+                return redirect()->route('certificates.show', $certificate)
+                    ->with('error', $e->getMessage());
+            }
+
+            $certificate->refresh();
+        }
+
+        if (! auth()->user()->can('certificate.print-action', $certificate)) {
+            abort(403, 'This certificate is not eligible for printing.');
+        }
+
+        $idempotencyKey = $request->input('idempotency_key') ?? (string) str()->uuid();
+        $event = $prints->createPrintEvent(
+            $certificate,
+            auth()->user(),
+            $idempotencyKey,
+            $certificate->total_prints_cached > 0 ? 'reprint' : 'initial_issue'
+        );
+
         $pdf = $event->pdfFile ?? $event->version?->pdfFile;
 
         if (! $pdf || ! Storage::disk($pdf->storage_disk)->exists($pdf->object_key)) {

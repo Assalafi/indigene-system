@@ -171,18 +171,40 @@
                 <div class="card bg-white border-0 rounded-3 mb-4">
                     <div class="card-body p-4">
                         <h5 class="fw-semibold mb-3">Certificate</h5>
-                        <p class="small text-secondary mb-3">
-                            This approval created certificate eligibility. Issue the certificate
-                            to allocate its unique number and create version 1.
-                        </p>
-                        <a href="{{ route('certificates.show', $application->certificate) }}" class="btn btn-brand-green w-100 rounded-3 fw-semibold">
-                            <i class="ri-verified-badge-line me-1"></i>
-                            @if ($application->certificate->certificate_number)
+                        @php
+                            $cert = $application->certificate;
+                            $canIssueHere = auth()->user()->can('issue', $cert);
+                        @endphp
+                        @if ($cert->status->value === 'active' || ($cert->status->value === 'eligible' && $canIssueHere))
+                            <form method="POST" action="{{ route('applications.print', $application) }}" target="_blank">
+                                @csrf
+                                <input type="hidden" name="idempotency_key" value="{{ str()->uuid() }}">
+                                <button class="btn btn-brand-green w-100 rounded-3 fw-semibold" type="submit">
+                                    <i class="ri-printer-line me-1"></i> Print certificate
+                                </button>
+                            </form>
+                            <p class="small text-secondary mt-2 mb-3">
+                                @if ($cert->status->value === 'eligible')
+                                    This print action issues the certificate and opens it as a PDF.
+                                @else
+                                    Opens the approved certificate as a PDF in your browser.
+                                @endif
+                            </p>
+                        @elseif ($cert->status->value === 'eligible')
+                            <div class="alert alert-warning small mb-3">
+                                This certificate is eligible but not yet issued. Issuance requires a user with the
+                                "Issue certificate" permission.
+                            </div>
+                        @endif
+                        @if ($cert->certificate_number)
+                            <a href="{{ route('certificates.show', $application->certificate) }}" class="btn btn-outline-secondary w-100 rounded-3 fw-semibold">
                                 Certificate {{ $application->certificate->certificate_number }}
-                            @else
-                                Issue certificate
-                            @endif
-                        </a>
+                            </a>
+                        @else
+                            <a href="{{ route('certificates.show', $application->certificate) }}" class="btn btn-outline-secondary w-100 rounded-3 fw-semibold">
+                                Open certificate
+                            </a>
+                        @endif
                     </div>
                 </div>
             @endif
@@ -201,21 +223,26 @@
                 </div>
             </div>
 
-            @can('update', $application)
-                <div class="card bg-white border-0 rounded-3 mb-4">
-                    <div class="card-body p-4">
-                        <h5 class="fw-semibold mb-3">Actions</h5>
-                        @if ($application->canBeSubmitted())
-                            <a href="{{ route('applications.edit', $application) }}"
-                               class="btn btn-primary-div text-white w-100 mb-2 rounded-3 fw-semibold">
-                                <i class="ri-edit-line me-1"></i> Edit and submit
-                            </a>
-                        @else
-                            <p class="small text-secondary mb-0">This application is no longer editable.</p>
-                        @endif
-                    </div>
+            <div class="card bg-white border-0 rounded-3 mb-4">
+                <div class="card-body p-4">
+                    <h5 class="fw-semibold mb-3">Actions</h5>
+                    @if ($application->canBeSubmitted() && auth()->user()->can('update', $application))
+                        <a href="{{ route('applications.edit', $application) }}"
+                           class="btn btn-primary-div text-white w-100 mb-2 rounded-3 fw-semibold">
+                            <i class="ri-edit-line me-1"></i> Correct and resubmit
+                        </a>
+                    @endif
+                    @can('delete', $application)
+                        <form method="POST" action="{{ route('applications.delete', $application) }}"
+                              data-confirm="Delete this application and its applicant record? This cannot be undone.">
+                            @csrf
+                            <button class="btn btn-outline-danger w-100 rounded-3 fw-semibold" type="submit">
+                                <i class="ri-delete-bin-line me-1"></i> Delete application
+                            </button>
+                        </form>
+                    @endcan
                 </div>
-            @endcan
+            </div>
 
             @if ($canDecide)
                 <div class="card bg-white border-0 rounded-3 mb-4">

@@ -90,12 +90,15 @@ Route::middleware(['auth', 'user.active'])->group(function () {
     // Applications
     Route::get('/applications', [ApplicationController::class, 'index'])->name('applications.index');
     Route::get('/applications/create', [ApplicationWizardController::class, 'create'])->name('applications.create');
+    Route::post('/applications', [ApplicationWizardController::class, 'store'])->name('applications.store');
     Route::get('/applications/{application}/edit', [ApplicationWizardController::class, 'edit'])->name('applications.edit');
     Route::post('/applications/{application}/save', [ApplicationWizardController::class, 'saveAndSubmit'])->name('applications.save');
+    Route::post('/applications/{application}/delete', [ApplicationController::class, 'destroy'])->name('applications.delete');
+    Route::post('/applications/{application}/print', [CertificateController::class, 'printForApplication'])->name('applications.print');
     Route::get('/applications/{application}/wizard/{step}', [ApplicationWizardController::class, 'show'])
         ->where('step', '[1-8]')
         ->name('applications.wizard');
-    Route::post('/applications/{application}/wizard/{step}', [ApplicationWizardController::class, 'store'])
+    Route::post('/applications/{application}/wizard/{step}', [ApplicationWizardController::class, 'storeLegacy'])
         ->where('step', '[1-8]')
         ->name('applications.wizard.store');
     Route::get('/applications/{application}', [ApplicationController::class, 'show'])->name('applications.show');

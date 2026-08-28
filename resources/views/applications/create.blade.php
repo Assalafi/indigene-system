@@ -1,12 +1,14 @@
 @extends('layouts.app')
 
-@section('title', 'New Application')
-@section('page-title', 'Register Indigene')
-@section('page-subtitle', 'Complete the details below and submit for approval in one step.')
+@section('title', $creating ? 'Register Indigene' : 'Edit Application')
+@section('page-title', $creating ? 'Register Indigene' : 'Edit Application')
+@section('page-subtitle', 'Complete the details and submit for approval in one step.')
 
 @section('breadcrumbs')
     <li class="breadcrumb-item"><a href="{{ route('applications.index') }}" class="text-decoration-none"><span class="text-secondary fw-medium">Applications</span></a></li>
-    <li class="breadcrumb-item active" aria-current="page"><span class="fw-medium">{{ $application->application_number }}</span></li>
+    <li class="breadcrumb-item active" aria-current="page">
+        <span class="fw-medium">{{ $creating ? 'New Application' : $application->application_number }}</span>
+    </li>
 @endsection
 
 @section('content')
@@ -14,10 +16,13 @@
         <div class="col-lg-9">
             @include('partials.flash-messages')
 
-            <form method="POST" action="{{ route('applications.save', $application) }}"
+            <form method="POST" action="{{ $creating ? route('applications.store') : route('applications.save', $application) }}"
                   enctype="multipart/form-data"
                   data-confirm="Submit this application for LGA approval? You will not be able to edit it after submission.">
                 @csrf
+                @if ($creating && auth()->user()->isSystemAdmin())
+                    <input type="hidden" name="lga_id" value="{{ $lga->id }}">
+                @endif
 
                 <div class="card bg-white border-0 rounded-3 mb-4">
                     <div class="card-body p-4">
@@ -35,29 +40,29 @@
                             <div class="col-md-4">
                                 <label for="surname" class="form-label">Surname <span class="required-indicator">Required</span></label>
                                 <input class="form-control" id="surname" name="surname" type="text" maxlength="100"
-                                       value="{{ old('surname', $profile->surname) }}" required>
+                                       value="{{ old('surname', $profile?->surname) }}" required>
                             </div>
                             <div class="col-md-4">
                                 <label for="first_name" class="form-label">First name <span class="required-indicator">Required</span></label>
                                 <input class="form-control" id="first_name" name="first_name" type="text" maxlength="100"
-                                       value="{{ old('first_name', $profile->first_name) }}" required>
+                                       value="{{ old('first_name', $profile?->first_name) }}" required>
                             </div>
                             <div class="col-md-4">
                                 <label for="middle_name" class="form-label">Middle name <span class="text-secondary">(optional)</span></label>
                                 <input class="form-control" id="middle_name" name="middle_name" type="text" maxlength="100"
-                                       value="{{ old('middle_name', $profile->middle_name) }}">
+                                       value="{{ old('middle_name', $profile?->middle_name) }}">
                             </div>
                             <div class="col-md-4">
                                 <label for="date_of_birth" class="form-label">Date of birth <span class="required-indicator">Required</span></label>
                                 <input class="form-control" id="date_of_birth" name="date_of_birth" type="date"
-                                       max="{{ now()->toDateString() }}" value="{{ old('date_of_birth', $profile->date_of_birth?->toDateString()) }}" required>
+                                       max="{{ now()->toDateString() }}" value="{{ old('date_of_birth', $profile?->date_of_birth?->toDateString()) }}" required>
                             </div>
                             <div class="col-md-4">
                                 <label for="sex" class="form-label">Sex <span class="required-indicator">Required</span></label>
                                 <select class="form-select" id="sex" name="sex" required>
                                     <option value="">Select</option>
-                                    <option value="male" @selected(old('sex', $profile->sex) === 'male')>Male</option>
-                                    <option value="female" @selected(old('sex', $profile->sex) === 'female')>Female</option>
+                                    <option value="male" @selected(old('sex', $profile?->sex) === 'male')>Male</option>
+                                    <option value="female" @selected(old('sex', $profile?->sex) === 'female')>Female</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
@@ -65,29 +70,29 @@
                                 <select class="form-select" id="marital_status" name="marital_status">
                                     <option value="">—</option>
                                     @foreach (['Single', 'Married', 'Divorced', 'Separated', 'Widowed'] as $ms)
-                                        <option value="{{ $ms }}" @selected(old('marital_status', $profile->marital_status) === $ms)>{{ $ms }}</option>
+                                        <option value="{{ $ms }}" @selected(old('marital_status', $profile?->marital_status) === $ms)>{{ $ms }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="col-md-4">
                                 <label for="phone" class="form-label">Phone <span class="text-secondary">(optional)</span></label>
                                 <input class="form-control phone-input" id="phone" name="phone" type="text" maxlength="20"
-                                       placeholder="+2348012345678" value="{{ old('phone', $profile->phone) }}">
+                                       placeholder="+2348012345678" value="{{ old('phone', $profile?->phone) }}">
                             </div>
                             <div class="col-md-4">
                                 <label for="email" class="form-label">Email <span class="text-secondary">(optional)</span></label>
                                 <input class="form-control" id="email" name="email" type="email" maxlength="190"
-                                       value="{{ old('email', $profile->email) }}">
+                                       value="{{ old('email', $profile?->email) }}">
                             </div>
                             <div class="col-md-6">
-                                <label for="photo" class="form-label">Photograph <span class="required-indicator">Required</span></label>
+                                <label for="photo" class="form-label">Photograph <span class="text-secondary">{{ $creating ? '(recommended)' : '(optional)' }}</span></label>
                                 <input class="form-control" id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp">
                                 <div class="form-text">JPEG, PNG or WebP, max 5 MB. Face clearly visible.</div>
                                 @error('photo')<span class="text-danger small">{{ $message }}</span>@enderror
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Nationality</label>
-                                <input class="form-control" type="text" value="{{ $profile->nationality ?? 'Nigerian' }}" disabled>
+                                <input class="form-control" type="text" value="{{ $profile?->nationality ?? 'Nigerian' }}" disabled>
                             </div>
                         </div>
                     </div>
@@ -108,7 +113,7 @@
                                 <select class="form-select" id="district_id" name="district_id">
                                     <option value="">— None —</option>
                                     @foreach ($districts as $district)
-                                        <option value="{{ $district->id }}" @selected(old('district_id', $profile->district_id) === $district->id)>{{ $district->name }}</option>
+                                        <option value="{{ $district->id }}" @selected(old('district_id', $profile?->district_id) === $district->id)>{{ $district->name }}</option>
                                     @endforeach
                                 </select>
                                 @error('district_id')<span class="text-danger small">{{ $message }}</span>@enderror
@@ -118,7 +123,7 @@
                                 <select class="form-select" id="ward_id" name="ward_id" required>
                                     <option value="">Select ward</option>
                                     @foreach ($wards as $ward)
-                                        <option value="{{ $ward->id }}" @selected(old('ward_id', $profile->ward_id) === $ward->id)>{{ $ward->name }}</option>
+                                        <option value="{{ $ward->id }}" @selected(old('ward_id', $profile?->ward_id) === $ward->id)>{{ $ward->name }}</option>
                                     @endforeach
                                 </select>
                                 @error('ward_id')<span class="text-danger small">{{ $message }}</span>@enderror
@@ -128,7 +133,7 @@
                                 <select class="form-select" id="unit_id" name="unit_id" required>
                                     <option value="">Select unit</option>
                                     @foreach ($units as $unit)
-                                        <option value="{{ $unit->id }}" @selected(old('unit_id', $profile->unit_id) === $unit->id)>{{ $unit->name }}</option>
+                                        <option value="{{ $unit->id }}" @selected(old('unit_id', $profile?->unit_id) === $unit->id)>{{ $unit->name }}</option>
                                     @endforeach
                                 </select>
                                 @error('unit_id')<span class="text-danger small">{{ $message }}</span>@enderror
@@ -136,7 +141,7 @@
                             <div class="col-md-6">
                                 <label for="hometown" class="form-label">Hometown <span class="text-secondary">(optional)</span></label>
                                 <input class="form-control" id="hometown" name="hometown" type="text" maxlength="180"
-                                       value="{{ old('hometown', $profile->hometown) }}">
+                                       value="{{ old('hometown', $profile?->hometown) }}">
                             </div>
                         </div>
                     </div>

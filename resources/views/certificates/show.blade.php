@@ -90,9 +90,7 @@
                     @endif
 
                     @if ($canPrint)
-                        <form method="POST" action="{{ route('certificates.print-events', $certificate) }}"
-                              target="_blank" id="print-form"
-                              data-confirm="Generate a printable copy? This is counted as a print occurrence.">
+                        <form method="POST" action="{{ route('certificates.print-events', $certificate) }}" target="_blank">
                             @csrf
                             <input type="hidden" name="idempotency_key" value="{{ str()->uuid() }}">
                             <button class="btn btn-brand-green w-100 rounded-3 fw-semibold" type="submit">
