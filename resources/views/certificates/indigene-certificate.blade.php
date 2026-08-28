@@ -67,6 +67,8 @@
     $coatSrc = $asDataUri($coatOfArmsData ?? null, 'image/png')
         ?? (is_file($coatPath) ? 'file://'.$coatPath : null);
 
+    $calligraphyFontUrl = 'file://'.str_replace('\\', '/', public_path('assets/fonts/GreatVibes-Regular.ttf'));
+
     $certificateNumber = trim((string) $value('certificate_number'));
     $registryNumber = trim((string) $value('registry_number'));
     $issueDate = \Carbon\Carbon::parse($value('issued_at'))->format(
@@ -98,6 +100,20 @@
         @page {
             size: A4 portrait;
             margin: 0;
+        }
+
+        @font-face {
+            font-family: 'Great Vibes';
+            font-style: normal;
+            font-weight: 400;
+            src: url('{{ $calligraphyFontUrl }}') format('truetype');
+        }
+
+        @font-face {
+            font-family: 'Great Vibes';
+            font-style: normal;
+            font-weight: 700;
+            src: url('{{ $calligraphyFontUrl }}') format('truetype');
         }
 
         * {
@@ -253,22 +269,25 @@
 
         .certificate-title {
             top: 94mm;
-            right: 48mm;
+            right: 42mm;
             left: 28mm;
             color: {{ $titleColour }};
-            font-size: 28pt;
-            font-style: italic;
-            font-weight: bold;
+            font-family: 'Great Vibes', 'DejaVu Serif', serif;
+            font-size: 44pt;
+            font-style: normal;
+            font-weight: 400;
             line-height: 1.1;
         }
 
         .certify-label {
-            top: 109.5mm;
+            top: 111mm;
             right: 48mm;
             left: 28mm;
             color: #111;
-            font-size: 12.5pt;
-            font-style: italic;
+            font-family: 'Great Vibes', 'DejaVu Serif', serif;
+            font-size: 17pt;
+            font-style: normal;
+            font-weight: 400;
             line-height: 1.2;
         }
 
