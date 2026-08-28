@@ -280,7 +280,7 @@
         }
 
         .certify-label {
-            top: 111mm;
+            top: 114.5mm;
             right: 48mm;
             left: 28mm;
             color: #111;
