@@ -212,25 +212,25 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        var wards = @json($wards->map(fn ($w) => ['id' => $w->id, 'name' => $w->name]));
-        var units = @json($units->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'ward_id' => $u->ward_id]));
+        var units = @json($units->map(fn ($u) => ['id' => $u->id, 'name' => $u->name, 'ward_id' => $u->ward_id, 'district_id' => $u->district_id]));
+        var districtSel = document.getElementById('district_id');
         var wardSel = document.getElementById('ward_id');
         var unitSel = document.getElementById('unit_id');
 
-        function refreshUnits() {
-            var ward = wardSel.value;
-            var current = unitSel.value;
-            unitSel.innerHTML = '<option value="">Select unit</option>';
-            units.filter(function (u) { return u.ward_id === ward; })
-                .forEach(function (u) {
-                    var o = document.createElement('option');
-                    o.value = u.id; o.textContent = u.name;
-                    if (u.id === current) { o.selected = true; }
-                    unitSel.appendChild(o);
-                });
-        }
-        wardSel.addEventListener('change', function () { unitSel.value = ''; refreshUnits(); });
-        refreshUnits();
+        // No hierarchy mapping: the village list is independent. Choosing a village
+        // auto-fills its ward and district so the record stays consistent.
+        unitSel.addEventListener('change', function () {
+            var u = units.find(function (x) { return x.id === unitSel.value; });
+            if (!u) { return; }
+            if (u.district_id) {
+                districtSel.value = u.district_id;
+                districtSel.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            if (u.ward_id) {
+                wardSel.value = u.ward_id;
+                wardSel.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        });
     });
 </script>
 @endpush

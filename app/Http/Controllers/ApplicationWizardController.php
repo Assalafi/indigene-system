@@ -205,8 +205,10 @@ class ApplicationWizardController extends Controller
             throw ValidationException::withMessages(['ward_id' => 'The selected ward does not belong to your LGA.']);
         }
 
-        if ($unit->ward_id !== $ward->id || $unit->lga_id !== $lga->id) {
-            throw ValidationException::withMessages(['unit_id' => 'The selected unit does not belong to the selected ward.']);
+        // No district/ward/village hierarchy mapping is enforced; the village only
+        // needs to belong to the LGA (its ward is auto-filled on selection).
+        if ($unit->lga_id !== $lga->id) {
+            throw ValidationException::withMessages(['unit_id' => 'The selected unit does not belong to your LGA.']);
         }
 
         if ($unit->isPollingUnit()) {
