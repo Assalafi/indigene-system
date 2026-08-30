@@ -312,4 +312,52 @@ class UserController extends Controller
 
         return back()->with('status', 'Role updated to '.$data['role'].'.');
     }
+
+    public function update(User $user, Request $request)
+    {
+        $this->authorize('update', $user);
+
+        $data = $request->validate([
+            'full_name' => ['required', 'string', 'max:180'],
+            'email' => ['required', 'email', 'max:190', 'unique:users,email,'.$user->id],
+            'phone' => ['nullable', 'string', 'max:20', 'unique:users,phone,'.$user->id],
+        ]);
+
+        $user->full_name = $data['full_name'];
+        $user->email = strtolower($data['email']);
+        $user->phone = $data['phone'] ?? null;
+        $user->save();
+
+        $this->audit->record('user.updated', User::class, $user->id, [], [
+            'email' => $user->email,
+        ], 'medium');
+
+        return back()->with('status', 'Account details updated.');
+    }
+
+    public function destroy(User $user)
+    {
+        $this->authorize('delete', $user);
+
+        if ($user->id === auth()->id()) {
+            return back()->withErrors(['delete' => 'You cannot delete your own account.']);
+        }
+
+        // End active assignments and revoke sessions before the soft delete.
+        $user->assignments()->where('status', 'active')->update([
+            'status' => 'ended',
+            'ends_at' => now(),
+            'ended_by' => auth()->id(),
+            'end_reason' => 'User account deleted',
+        ]);
+
+        $this->audit->record('user.deleted', User::class, $user->id, [], [
+            'email' => $user->email,
+            'deleted_by' => auth()->id(),
+        ], 'high');
+
+        $user->delete();
+
+        return redirect()->route('admin.users.index')->with('status', 'User account deleted.');
+    }
 }

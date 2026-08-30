@@ -188,6 +188,8 @@ Route::middleware(['auth', 'user.active'])->group(function () {
     Route::post('/admin/users/{user}/assignments', [UserController::class, 'storeAssignment'])->name('admin.users.assignments.store');
     Route::post('/admin/assignments/{assignment}/end', [UserController::class, 'endAssignment'])->name('admin.users.assignments.end');
     Route::post('/admin/users/{user}/role', [UserController::class, 'updateRole'])->name('admin.users.role');
+    Route::post('/admin/users/{user}/update', [UserController::class, 'update'])->name('admin.users.update');
+    Route::post('/admin/users/{user}/delete', [UserController::class, 'destroy'])->name('admin.users.delete');
 
     // LGA profiles & signatories
     Route::get('/admin/lga-profiles', [LgaProfileController::class, 'index'])->name('admin.lga-profiles.index');

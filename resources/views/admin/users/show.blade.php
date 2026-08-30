@@ -97,6 +97,24 @@
         <div class="col-xl-4">
             <div class="card bg-white border-0 rounded-3 mb-4">
                 <div class="card-body p-4">
+                    <h5 class="fw-semibold mb-3">Account details</h5>
+                    <form method="POST" action="{{ route('admin.users.update', $user) }}">
+                        @csrf
+                        <input class="form-control mb-2" name="full_name" type="text" value="{{ old('full_name', $user->full_name) }}" required maxlength="180" placeholder="Full name">
+                        @error('full_name')<span class="text-danger small">{{ $message }}</span>@enderror
+                        <input class="form-control mb-2" name="email" type="email" value="{{ old('email', $user->email) }}" required maxlength="190" placeholder="Email address">
+                        @error('email')<span class="text-danger small">{{ $message }}</span>@enderror
+                        <input class="form-control mb-2" name="phone" type="text" value="{{ old('phone', $user->phone) }}" maxlength="20" placeholder="Phone (optional)">
+                        @error('phone')<span class="text-danger small">{{ $message }}</span>@enderror
+                        <button class="btn btn-outline-primary-div w-100 rounded-3 fw-semibold" type="submit">
+                            <i class="ri-save-line me-1"></i> Save details
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card bg-white border-0 rounded-3 mb-4">
+                <div class="card-body p-4">
                     <h5 class="fw-semibold mb-3">Account status</h5>
                     <form method="POST" action="{{ route('admin.users.status', $user) }}"
                           data-confirm="Change this account's status? The change is recorded in the audit log.">
@@ -207,6 +225,22 @@
                     </div>
                 </div>
             </div>
+
+            @can('delete', $user)
+                <div class="card bg-white border-0 rounded-3 mb-4">
+                    <div class="card-body p-4">
+                        <h5 class="fw-semibold text-danger mb-3">Danger zone</h5>
+                        <form method="POST" action="{{ route('admin.users.delete', $user) }}"
+                              data-confirm="Delete this user account? Their assignments are ended, sessions revoked, and the account is removed from the user list. Audit history is preserved.">
+                            @csrf
+                            <button class="btn btn-outline-danger w-100 rounded-3 fw-semibold" type="submit">
+                                <i class="ri-delete-bin-line me-1"></i> Delete user
+                            </button>
+                        </form>
+                        @error('delete')<span class="text-danger small">{{ $message }}</span>@enderror
+                    </div>
+                </div>
+            @endcan
         </div>
     </div>
 @endsection
