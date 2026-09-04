@@ -12,7 +12,7 @@ class RequirePasswordChange
     {
         $user = $request->user();
 
-        if ($user && $user->must_change_password) {
+        if ($user && $user->must_change_password && ! $request->routeIs('password.change*')) {
             return redirect()->route('password.change');
         }
 

@@ -81,7 +81,7 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 // --------------------------------------------------------------------------
 // Authenticated staff portal (SRD 30.2)
 // --------------------------------------------------------------------------
-Route::middleware(['auth', 'user.active'])->group(function () {
+Route::middleware(['auth', 'user.active', 'password.change'])->group(function () {
     Route::get('/password/change', [PasswordChangeController::class, 'showForced'])->name('password.change');
     Route::post('/password/change', [PasswordChangeController::class, 'update'])->name('password.change.store');
 
