@@ -79,7 +79,6 @@ class DashboardController extends Controller
 
         $awaitingReview = IndigeneApplication::where('lga_id', $lga->id)
             ->where('status', 'pending_chairman')
-            ->where('created_by', '!=', $user->id)
             ->orderBy('submitted_at')
             ->get();
 
