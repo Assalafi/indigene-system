@@ -134,18 +134,11 @@ class IndigeneApplication extends Model
             return $this->status->isPendingDecision();
         }
 
-        if ($this->approval_route === 'admin_only') {
-            return false;
-        }
-
         if ($this->status !== ApplicationStatus::PendingChairman) {
             return false;
         }
 
-        if ($this->created_by === $user->id) {
-            return false;
-        }
-
-        return $this->lga_id === $user->activeLga()?->id;
+        return $user->can('application.decide')
+            && $this->lga_id === $user->activeLga()?->id;
     }
 }

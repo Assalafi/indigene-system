@@ -41,12 +41,10 @@ class ApplicationWorkflowService
             $application
         );
 
-        $creatorIsChairman = $user->hasRole('lga_chairman');
-
-        $route = $creatorIsChairman ? 'admin_only' : 'chairman_or_admin';
-        $target = $creatorIsChairman
-            ? ApplicationStatus::PendingSystemAdmin
-            : ApplicationStatus::PendingChairman;
+        // Applications are routed to the LGA Chairman queue for decision. The System
+        // Admin can also decide any pending application.
+        $route = 'chairman_or_admin';
+        $target = ApplicationStatus::PendingChairman;
 
         $from = $application->status->value;
 
@@ -141,10 +139,6 @@ class ApplicationWorkflowService
 
     public function approve(IndigeneApplication $application, User $user, array $checklist = [], ?string $publicComment = null, ?string $internalComment = null, bool $isOverride = false): void
     {
-        if ($user->id === $application->created_by && ! $user->isSystemAdmin()) {
-            throw new HttpException(403, 'You cannot approve an application you created.');
-        }
-
         if ($application->created_by === $user->id && $user->isSystemAdmin() && ! $isOverride) {
             throw new HttpException(403, 'Approving your own application requires an authorised override.');
         }

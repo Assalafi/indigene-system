@@ -12,7 +12,6 @@
     <ul class="nav nav-tabs mb-3">
         <li class="nav-item"><a class="nav-link {{ $tab === 'all' ? 'active' : '' }}" href="{{ route('approvals.queue', ['tab' => 'all']) }}">All pending</a></li>
         @if (auth()->user()->isSystemAdmin())
-            <li class="nav-item"><a class="nav-link {{ $tab === 'chairman-created' ? 'active' : '' }}" href="{{ route('approvals.queue', ['tab' => 'chairman-created']) }}">Chairman-created</a></li>
             <li class="nav-item"><a class="nav-link {{ $tab === 'escalated' ? 'active' : '' }}" href="{{ route('approvals.queue', ['tab' => 'escalated']) }}">Escalated</a></li>
         @endif
         <li class="nav-item"><a class="nav-link {{ $tab === 'overdue' ? 'active' : '' }}" href="{{ route('approvals.queue', ['tab' => 'overdue']) }}">Overdue</a></li>

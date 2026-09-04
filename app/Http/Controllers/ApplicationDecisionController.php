@@ -16,11 +16,13 @@ class ApplicationDecisionController extends Controller
     public function queue(Request $request)
     {
         $user = auth()->user();
+
+        abort_unless($user->can('application.decide'), 403, 'Only decision makers can open the approval queue.');
+
         $lga = $user->activeLga();
 
         $query = IndigeneApplication::with(['indigene.currentProfile', 'lga', 'creator'])
-            ->whereIn('status', ['pending_chairman', 'pending_system_admin'])
-            ->where('created_by', '!=', $user->id);
+            ->whereIn('status', ['pending_chairman', 'pending_system_admin']);
 
         if (! $user->isSystemAdmin()) {
             $query->where('lga_id', $lga->id);
@@ -28,9 +30,7 @@ class ApplicationDecisionController extends Controller
 
         $tab = $request->input('tab', 'all');
 
-        if ($tab === 'chairman-created' && $user->isSystemAdmin()) {
-            $query->where('approval_route', 'admin_only');
-        } elseif ($tab === 'overdue') {
+        if ($tab === 'overdue') {
             $query->whereNotNull('due_at')->where('due_at', '<', now());
         } elseif ($tab === 'flagged') {
             $query->whereHas('duplicateFlags', fn ($d) => $d->where('status', 'open'));
