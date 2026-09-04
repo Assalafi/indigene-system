@@ -177,6 +177,21 @@
         </div>
 
         <div class="col-xl-4">
+            @if ($canDecide)
+                <div class="card bg-white border-0 rounded-3 mb-4">
+                    <div class="card-body p-4">
+                        <form method="POST" action="{{ route('applications.decide', $application) }}"
+                              data-confirm="Approve this application? The applicant becomes an active indigene and their certificate becomes eligible to print.">
+                            @csrf
+                            <input type="hidden" name="decision" value="approve">
+                            <button class="btn btn-brand-green w-100 py-2 rounded-3 fw-semibold" type="submit">
+                                <i class="ri-check-double-line me-1"></i> Approve application
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            @endif
+
             @if ($application->certificate)
                 <div class="card bg-white border-0 rounded-3 mb-4">
                     <div class="card-body p-4">
@@ -260,75 +275,6 @@
                 </div>
             </div>
 
-            @if ($canDecide)
-                <div class="card bg-white border-0 rounded-3 mb-4">
-                    <div class="card-body p-4">
-                        <h5 class="fw-semibold mb-3">Decision</h5>
-
-                        @if ($application->created_by === auth()->id())
-                            <div class="alert alert-warning d-flex align-items-start gap-2">
-                                <span class="material-symbols-outlined">warning</span>
-                                <div class="small">
-                                    You created this application. Separation of duties means
-                                    @if (auth()->user()->isSystemAdmin())
-                                        approval requires an authorised override with a written reason.
-                                    @else
-                                        it cannot be approved by you; it will be decided by a System Admin.
-                                    @endif
-                                </div>
-                            </div>
-                        @endif
-
-                        <form method="POST" action="{{ route('applications.decide', $application) }}" id="decision-form"
-                              data-confirm="Confirm this decision. Decisions are immutable and recorded in the audit trail.">
-                            @csrf
-                            <div class="mb-3">
-                                <label for="decision" class="form-label">Decision <span class="required-indicator">Required</span></label>
-                                <select class="form-select" id="decision" name="decision" required>
-                                    <option value="">Select decision</option>
-                                    <option value="approve">Approve</option>
-                                    <option value="request_correction">Request correction</option>
-                                    <option value="reject">Reject</option>
-                                </select>
-                            </div>
-
-                            <div class="mb-3">
-                                <div class="alert alert-light border small mb-0">
-                                    Approval is recorded with your identity, scope and timestamp. The applicant is
-                                    notified and the certificate becomes eligible immediately.
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="reason_code" class="form-label">Reason code <span class="text-secondary">(reject only)</span></label>
-                                <select class="form-select" id="reason_code" name="reason_code">
-                                    <option value="">—</option>
-                                    <option value="insufficient_evidence">Insufficient evidence</option>
-                                    <option value="identity_mismatch">Identity mismatch</option>
-                                    <option value="nin_issue">NIN issue</option>
-                                    <option value="geography_invalid">Invalid geography</option>
-                                    <option value="duplicate">Duplicate record</option>
-                                    <option value="other">Other</option>
-                                </select>
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="public_comment" class="form-label">Public comment <span class="text-secondary">(shown to the creator)</span></label>
-                                <textarea class="form-control" id="public_comment" name="public_comment" rows="3" maxlength="2000"></textarea>
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="internal_comment" class="form-label">Internal note <span class="text-secondary">(not shown publicly)</span></label>
-                                <textarea class="form-control" id="internal_comment" name="internal_comment" rows="2" maxlength="2000"></textarea>
-                            </div>
-
-                            <button class="btn btn-brand-green w-100 rounded-3 fw-semibold" type="submit">
-                                <i class="ri-how-to-vote-line me-1"></i> Record decision
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            @endif
         </div>
     </div>
 @endsection
