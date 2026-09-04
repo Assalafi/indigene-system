@@ -115,7 +115,8 @@ class ApplicationWorkflowService
     private function notifyQueue(IndigeneApplication $application, User $submitter): void
     {
         $lgaName = $application->lga->name;
-        $message = "New application {$application->application_number} for {$application->indigene->fullName()} in {$lgaName} LGA awaits a decision.";
+        $applicantName = $application->profile?->displayName() ?: $application->indigene->fullName();
+        $message = "New application {$application->application_number} for {$applicantName} in {$lgaName} LGA awaits a decision.";
 
         $recipients = \App\Models\User::where('status', 'active')
             ->whereHas('roles', fn ($q) => $q->whereIn('name', ['system_admin', 'lga_chairman']))
