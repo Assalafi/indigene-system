@@ -77,14 +77,20 @@ class DashboardController extends Controller
 
         $monthStart = now()->startOfMonth();
 
-        $awaitingReview = IndigeneApplication::where('lga_id', $lga->id)
+        $awaitingReview = IndigeneApplication::with(['profile.ward', 'profile.unit', 'profile.district', 'creator'])
+            ->where('lga_id', $lga->id)
             ->where('status', 'pending_chairman')
             ->orderBy('submitted_at')
             ->get();
 
+        $oldestSubmitted = $awaitingReview->min('submitted_at');
+        $oldestPendingDays = $oldestSubmitted
+            ? max(0, (int) floor((now()->getTimestamp() - $oldestSubmitted->getTimestamp()) / 86400))
+            : 0;
+
         $stats = [
             'awaiting_review' => $awaitingReview->count(),
-            'oldest_pending_days' => $awaitingReview->min('submitted_at') ? now()->diffInDays($awaitingReview->min('submitted_at')) : 0,
+            'oldest_pending_days' => $oldestPendingDays,
             'approved_this_month' => IndigeneApplication::where('lga_id', $lga->id)->where('status', 'approved')->where('decided_at', '>=', $monthStart)->count(),
             'rejected_this_month' => IndigeneApplication::where('lga_id', $lga->id)->where('status', 'rejected')->where('decided_at', '>=', $monthStart)->count(),
             'certificates_this_month' => Certificate::where('lga_id', $lga->id)->where('issued_at', '>=', $monthStart)->count(),

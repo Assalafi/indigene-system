@@ -103,13 +103,15 @@ class IndigeneApplication extends Model
         return $this->status->label();
     }
 
-    public function queueAgeInDays(): ?float
+    public function queueAgeInDays(): ?int
     {
         if (! $this->submitted_at) {
             return null;
         }
 
-        return now()->diffInDays($this->submitted_at);
+        $seconds = now()->getTimestamp() - $this->submitted_at->getTimestamp();
+
+        return max(0, (int) floor($seconds / 86400));
     }
 
     public function routeTarget(): string

@@ -21,7 +21,7 @@ class ApplicationDecisionController extends Controller
 
         $lga = $user->activeLga();
 
-        $query = IndigeneApplication::with(['indigene.currentProfile', 'lga', 'creator'])
+        $query = IndigeneApplication::with(['profile.ward', 'profile.unit', 'profile.district', 'lga', 'creator'])
             ->whereIn('status', ['pending_chairman', 'pending_system_admin']);
 
         if (! $user->isSystemAdmin()) {

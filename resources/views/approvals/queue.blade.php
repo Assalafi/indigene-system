@@ -26,9 +26,8 @@
                         <tr>
                             <th>Application</th>
                             <th>Applicant</th>
-                            <th>Ward / unit</th>
+                            <th>Village / District</th>
                             <th>Submitted by</th>
-                            <th>Route</th>
                             <th>Waiting</th>
                             <th>Flags</th>
                             <th></th>
@@ -36,16 +35,24 @@
                     </thead>
                     <tbody>
                         @forelse ($applications as $app)
-                            @php $profile = $app->indigene->currentProfile; $flags = $app->duplicateFlags()->where('status', 'open')->count(); @endphp
+                            @php $profile = $app->profile; $flags = $app->duplicateFlags()->where('status', 'open')->count(); @endphp
                             <tr>
                                 <td><a href="{{ route('applications.show', $app) }}" class="fw-semibold">{{ $app->application_number }}</a></td>
-                                <td>{{ $profile?->displayName() ?? $app->indigene->fullName() }}</td>
-                                <td>{{ $profile?->ward?->name ?? '—' }} / {{ $profile?->unit?->name ?? '—' }}</td>
+                                <td>{{ $profile?->displayName() ?: 'Unnamed applicant' }}</td>
+                                <td>
+                                    @if ($profile?->unit?->name)
+                                        {{ $profile->unit->name }}
+                                        @if ($profile->district?->name)
+                                            <span class="text-secondary">/ {{ $profile->district->name }}</span>
+                                        @endif
+                                    @else
+                                        —
+                                    @endif
+                                </td>
                                 <td>
                                     {{ $app->creator->full_name }}
                                     <div class="small text-secondary">{{ $app->creator->primaryRoleName() }}</div>
                                 </td>
-                                <td><span class="small">{{ $app->approval_route === 'admin_only' ? 'Admin only' : 'Chairman or Admin' }}</span></td>
                                 <td>
                                     @php $days = $app->queueAgeInDays(); $overdue = $app->due_at && $app->due_at->isPast(); @endphp
                                     @if ($days !== null)
@@ -64,7 +71,7 @@
                                 <td><a href="{{ route('applications.show', $app) }}" class="btn btn-sm btn-primary-div text-white rounded-3">Review</a></td>
                             </tr>
                         @empty
-                            <tr><td colspan="8">
+                            <tr><td colspan="7">
                                 <div class="empty-state">
                                     <span class="material-symbols-outlined">task_alt</span>
                                     <p class="mb-1 fw-semibold">Queue is clear</p>

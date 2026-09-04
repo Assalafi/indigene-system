@@ -62,7 +62,7 @@
                         <tr>
                             <th>Application</th>
                             <th>Applicant</th>
-                            <th>Ward / unit</th>
+                            <th>Village / District</th>
                             <th>Submitted by</th>
                             <th>Waiting</th>
                             <th></th>
@@ -70,11 +70,20 @@
                     </thead>
                     <tbody>
                         @forelse ($awaitingReview->take(10) as $app)
-                            @php $profile = $app->indigene->currentProfile; @endphp
+                            @php $profile = $app->profile; @endphp
                             <tr>
                                 <td><a href="{{ route('applications.show', $app) }}" class="fw-semibold">{{ $app->application_number }}</a></td>
-                                <td>{{ $profile?->displayName() ?? '—' }}</td>
-                                <td>{{ $profile?->ward?->name }} / {{ $profile?->unit?->name }}</td>
+                                <td>{{ $profile?->displayName() ?: 'Unnamed applicant' }}</td>
+                                <td>
+                                    @if ($profile?->unit?->name)
+                                        {{ $profile->unit->name }}
+                                        @if ($profile->district?->name)
+                                            <span class="text-secondary">/ {{ $profile->district->name }}</span>
+                                        @endif
+                                    @else
+                                        —
+                                    @endif
+                                </td>
                                 <td>{{ $app->creator->full_name }}</td>
                                 <td>
                                     @if ($app->queueAgeInDays() !== null)

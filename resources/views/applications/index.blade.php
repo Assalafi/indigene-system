@@ -66,7 +66,7 @@
                             <tr>
                                 <td><a href="{{ route('applications.show', $app) }}" class="fw-semibold">{{ $app->application_number }}</a></td>
                                 <td>
-                                    {{ $app->indigene->fullName() }}
+                                    {{ $app->profile?->displayName() ?: 'Unnamed applicant' }}
                                     <div class="small text-secondary">NIN {{ $app->indigene->maskedNin() }}</div>
                                 </td>
                                 <td>{{ $app->lga->name }}</td>
