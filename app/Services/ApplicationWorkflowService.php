@@ -34,10 +34,6 @@ class ApplicationWorkflowService
             return;
         }
 
-        if ($user->id === $application->created_by && ! $user->isSystemAdmin()) {
-            throw new HttpException(403, 'This application can only be edited and resubmitted by its creator or a System Admin.');
-        }
-
         // SRD 14.1 rule 4: exact and fuzzy duplicate checks run before submission.
         app(DuplicateDetectionService::class)->detect(
             $application->indigene,
