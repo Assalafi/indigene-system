@@ -264,8 +264,8 @@
 
         .certificate-title {
             top: 94mm;
-            right: 42mm;
-            left: 28mm;
+            left: 30mm;
+            right: 30mm;
             color: {{ $titleColour }};
             font-family: 'Great Vibes', 'DejaVu Serif', serif;
             font-size: 44pt;
@@ -276,8 +276,8 @@
 
         .certify-label {
             top: 114.5mm;
-            right: 48mm;
-            left: 28mm;
+            left: 30mm;
+            right: 30mm;
             color: #111;
             font-family: 'DejaVu Serif', serif;
             font-size: 12.5pt;
@@ -288,8 +288,8 @@
 
         .holder-name {
             top: 121.5mm;
-            right: 50mm;
-            left: 25mm;
+            left: 30mm;
+            right: 30mm;
             color: #111;
             font-size: 20pt;
             font-style: italic;
