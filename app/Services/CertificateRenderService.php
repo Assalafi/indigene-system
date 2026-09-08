@@ -260,7 +260,7 @@ class CertificateRenderService
                 'authority_type' => $lga->type === 'area_council' ? 'AREA COUNCIL' : 'LOCAL GOVERNMENT',
                 'assistance_text' => 'Therefore, you may wish to render the holder any possible assistance',
                 'certificate_date_format' => 'd/m/Y',
-                'show_signatory_name' => true,
+                'show_signatory_name' => false,
                 'footer' => $lgaProfile->footer_text ?? 'This certificate is subject to online verification.',
             ],
             'signatory' => [
@@ -283,9 +283,6 @@ class CertificateRenderService
         $qrPng = base64_encode($this->renderQrPng($snapshot['verification_url']));
 
         $photoData = $this->privateAssetBase64($snapshot['holder']['photo_path'] ?? null);
-        $signatureData = $this->privateAssetBase64($snapshot['signatory']['signature_path'] ?? null);
-        $sealData = $this->privateAssetBase64($snapshot['signatory']['seal_path'] ?? null);
-
         // DOMPDF with isRemoteEnabled=false does not reliably resolve file:// image
         // paths, so the local certificate artwork is embedded as base64 data URIs.
         $coatOfArmsData = null;
@@ -307,8 +304,6 @@ class CertificateRenderService
             'photoData' => $photoData,
             'qrPng' => $qrPng,
             'copyLabel' => $copyLabel ?? 'ORIGINAL - COPY 01',
-            'signatureData' => $signatureData,
-            'sealData' => $sealData,
             'coatOfArmsData' => $coatOfArmsData,
             'securityBackgroundData' => $securityBackgroundData,
         ]);

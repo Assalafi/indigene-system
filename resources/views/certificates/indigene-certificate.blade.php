@@ -58,8 +58,6 @@
 
     $photoSrc = $asDataUri($photoData ?? null, 'image/jpeg');
     $qrSrc = $asDataUri($qrPng ?? null, 'image/png');
-    $signatureSrc = $asDataUri($signatureData ?? null, 'image/png');
-    $sealSrc = $asDataUri($sealData ?? null, 'image/png');
     $backgroundPath = public_path('images/certificate/certificate-security-background.jpg');
     $coatPath = public_path('images/certificate/nigeria-coat-of-arms.png');
     $backgroundSrc = $asDataUri($securityBackgroundData ?? null, 'image/jpeg')
@@ -70,14 +68,11 @@
     $calligraphyFontUrl = 'file://'.str_replace('\\', '/', public_path('assets/fonts/GreatVibes-Regular.ttf'));
 
     $certificateNumber = trim((string) $value('certificate_number'));
-    $registryNumber = trim((string) $value('registry_number'));
     $issueDate = \Carbon\Carbon::parse($value('issued_at'))->format(
         (string) $value('branding.certificate_date_format', 'd/m/y')
     );
 
-    $signatoryName = trim((string) $value('signatory.full_name'));
     $officeTitle = trim((string) $value('signatory.office_title', 'Executive Chairman'));
-    $showSignatoryName = (bool) $value('branding.show_signatory_name', false);
     $copyText = trim((string) ($copyLabel ?? 'ORIGINAL - COPY 01'));
     $isReprint = str_contains(mb_strtoupper($copyText), 'REPRINT');
 
@@ -369,7 +364,7 @@
 
         .qr-block {
             position: absolute;
-            top: 236mm;
+            top: 240mm;
             left: 18mm;
             z-index: 6;
             width: 40mm;
@@ -378,8 +373,8 @@
 
         .qr-block img,
         .qr-placeholder {
-            width: 38mm;
-            height: 38mm;
+            width: 40mm;
+            height: 40mm;
             border: 0;
         }
 
@@ -391,19 +386,12 @@
             font-size: 7pt;
         }
 
-        .qr-caption {
-            margin-top: 1mm;
-            color: #26332d;
-            font-size: 7.5pt;
-            font-weight: bold;
-        }
-
         .signature-block {
             position: absolute;
-            top: 258mm;
-            right: 22mm;
+            top: 264mm;
+            right: 23mm;
             z-index: 6;
-            width: 62mm;
+            width: 40mm;
             color: #111;
             text-align: center;
         }
@@ -418,57 +406,19 @@
         .signature-area {
             position: relative;
             height: 2.5mm;
-            border-bottom: .35mm solid #222;
-        }
-
-        .signature-image {
-            position: absolute;
-            right: 12mm;
-            bottom: .5mm;
-            width: 38mm;
-            height: 14mm;
-        }
-
-        .seal-image {
-            position: absolute;
-            right: -2mm;
-            bottom: -8mm;
-            width: 20mm;
-            height: 20mm;
-            opacity: .88;
-        }
-
-        .signatory-name {
-            margin-top: 1.2mm;
-            font-size: 9.5pt;
-            font-weight: bold;
-            line-height: 1.15;
+            border-bottom: .27mm solid #222;
         }
 
         .office-title {
             margin-top: 1.1mm;
-            font-size: 12pt;
+            font-size: 13.5pt;
             line-height: 1.1;
         }
 
         .signature-label {
             margin-top: .9mm;
-            font-size: 8.5pt;
+            font-size: 10pt;
             line-height: 1.1;
-        }
-
-        .footer-micro {
-            position: absolute;
-            right: 60mm;
-            bottom: 6.3mm;
-            left: 60mm;
-            z-index: 6;
-            overflow: hidden;
-            color: #607069;
-            font-size: 6.3pt;
-            line-height: 1.15;
-            text-align: center;
-            white-space: nowrap;
         }
 
         .reprint-watermark {
@@ -546,30 +496,13 @@
             @else
                 <div class="qr-placeholder">QR CODE</div>
             @endif
-            <div class="qr-caption">Scan to verify</div>
         </div>
 
         <div class="signature-block">
             <div class="issue-date">{{ $issueDate }}</div>
-            <div class="signature-area">
-                @if ($signatureSrc)
-                    <img class="signature-image" src="{{ $signatureSrc }}" alt="">
-                @endif
-        @if ($sealSrc)
-            <img class="seal-image" src="{{ $sealSrc }}" alt="">
-        @endif
-            </div>
-            @if ($showSignatoryName && $signatoryName !== '')
-                <div class="signatory-name">{{ $signatoryName }}</div>
-            @endif
+            <div class="signature-area"></div>
             <div class="office-title">{{ $officeTitle }}</div>
             <div class="signature-label">(Signature &amp; Seal)</div>
-        </div>
-
-        <div class="footer-micro">
-            {{ $registryNumber }} &middot;
-            Verify at {{ parse_url(config('app.url'), PHP_URL_HOST) }} &middot;
-            Technology by Haigha Tech
         </div>
     </div>
 </body>
