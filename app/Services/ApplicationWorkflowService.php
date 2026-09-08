@@ -201,7 +201,7 @@ class ApplicationWorkflowService
             'to' => ApplicationStatus::Approved->value,
         ], $isOverride ? 'high' : 'medium', $user);
 
-        $this->notifyCreator($application, 'approved', "Application {$application->application_number} was approved. The record is now eligible for certificate issuance.");
+        $this->notifyCreator($application, 'approved', "Application {$application->application_number} was approved. The certificate is now issued and ready to print.");
 
         if ($isOverride) {
             $this->audit->recordSensitiveAccess(
@@ -316,39 +316,42 @@ class ApplicationWorkflowService
 
     private function activateCertificateEligibility(IndigeneApplication $application, User $user): void
     {
-        $existing = Certificate::where('approved_application_id', $application->id)->get();
+        $cert = Certificate::where('approved_application_id', $application->id)
+            ->whereNotIn('status', [
+                CertificateStatus::Revoked->value,
+                CertificateStatus::Superseded->value,
+            ])
+            ->latest('created_at')
+            ->first();
 
-        if ($existing->isNotEmpty()) {
-            // Re-approval after an edit: return the existing certificate to Eligible
-            // so it is re-issued (new version, same number) with the corrected snapshot.
-            $returnedToEligible = false;
-
-            foreach ($existing as $cert) {
-                if (! in_array($cert->status, [
-                    CertificateStatus::Revoked->value,
-                    CertificateStatus::Superseded->value,
-                ], true)) {
-                    $cert->status = CertificateStatus::Eligible->value;
-                    $cert->save();
-                    $returnedToEligible = true;
-                }
-            }
-
-            if ($returnedToEligible) {
-                return;
-            }
+        if (! $cert) {
+            $cert = Certificate::create([
+                'indigene_id' => $application->indigene_id,
+                'approved_application_id' => $application->id,
+                'lga_id' => $application->lga_id,
+                'certificate_number' => null,
+                'status' => CertificateStatus::Eligible,
+                'public_token_hash' => hash('sha256', random_bytes(32)),
+                'issued_at' => null,
+                'approved_by' => $user->id,
+            ]);
+        } elseif ($cert->status !== CertificateStatus::Eligible) {
+            $cert->status = CertificateStatus::Eligible;
+            $cert->save();
         }
 
-        Certificate::create([
-            'indigene_id' => $application->indigene_id,
-            'approved_application_id' => $application->id,
-            'lga_id' => $application->lga_id,
-            'certificate_number' => null,
-            'status' => CertificateStatus::Eligible,
-            'public_token_hash' => hash('sha256', random_bytes(32)),
-            'issued_at' => null,
-            'approved_by' => $user->id,
-        ]);
+        // An approval makes the certificate immediately ready to print: allocate its
+        // number and create version 1 in the same action. If LGA branding or an
+        // active signatory is not configured yet it stays Eligible for later issuance.
+        try {
+            app(CertificateRenderService::class)->issue($cert, $user);
+        } catch (\Throwable $e) {
+            logger()->warning('Certificate auto-issue after approval deferred.', [
+                'application' => $application->id,
+                'certificate' => $cert->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     private function resolveOpenDuplicateBlocks(IndigeneApplication $application): void
