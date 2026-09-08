@@ -391,7 +391,7 @@
             top: 264mm;
             right: 23mm;
             z-index: 6;
-            width: 40mm;
+            width: 60mm;
             color: #111;
             text-align: center;
         }
