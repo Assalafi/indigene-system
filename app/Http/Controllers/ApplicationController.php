@@ -15,7 +15,7 @@ class ApplicationController extends Controller
         $user = auth()->user();
         $lga = $user->activeLga();
 
-        $query = IndigeneApplication::with(['profile.ward', 'profile.unit', 'profile.district', 'indigene', 'lga', 'creator'])
+        $query = IndigeneApplication::with(['profile.ward', 'profile.unit', 'profile.district', 'indigene', 'lga', 'creator', 'certificate'])
             ->when(! $user->isSystemAdmin(), fn ($q) => $q->where('lga_id', $lga->id));
 
         if ($request->filled('q')) {

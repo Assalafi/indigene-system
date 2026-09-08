@@ -83,6 +83,13 @@
                                 <td class="text-end">
                                     <div class="d-flex gap-2 justify-content-end">
                                         <a href="{{ route('applications.show', $app) }}" class="btn btn-sm btn-outline-secondary">Open</a>
+                                        @if ($app->certificate && $app->certificate->status === \App\Enums\CertificateStatus::Active && auth()->user()->can('certificate.print-action', $app->certificate))
+                                            <form method="POST" action="{{ route('applications.print', $app) }}" target="_blank">
+                                                @csrf
+                                                <input type="hidden" name="idempotency_key" value="{{ str()->uuid() }}">
+                                                <button class="btn btn-sm btn-brand-green" type="submit"><i class="ri-printer-line me-1"></i> Print</button>
+                                            </form>
+                                        @endif
                                         @can('delete', $app)
                                             <form method="POST" action="{{ route('applications.delete', $app) }}"
                                                   data-confirm="Delete application {{ $app->application_number }} and its applicant record? This cannot be undone.">

@@ -58,7 +58,18 @@
                                 <td>v{{ $cert->currentVersion?->version_no ?? 0 }}</td>
                                 <td>@include('partials.status-badge', ['status' => $cert->status->value])</td>
                                 <td><span class="fw-semibold">{{ $cert->total_prints_cached }}</span></td>
-                                <td><a href="{{ route('certificates.show', $cert) }}" class="btn btn-sm btn-outline-secondary">Open</a></td>
+                                <td>
+                                    <div class="d-flex gap-2 justify-content-end">
+                                        <a href="{{ route('certificates.show', $cert) }}" class="btn btn-sm btn-outline-secondary">Open</a>
+                                        @if ($cert->status === \App\Enums\CertificateStatus::Active && auth()->user()->can('certificate.print-action', $cert))
+                                            <form method="POST" action="{{ route('certificates.print-events', $cert) }}" target="_blank">
+                                                @csrf
+                                                <input type="hidden" name="idempotency_key" value="{{ str()->uuid() }}">
+                                                <button class="btn btn-sm btn-brand-green" type="submit"><i class="ri-printer-line me-1"></i> Print</button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                </td>
                             </tr>
                         @empty
                             <tr><td colspan="8">

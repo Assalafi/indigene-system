@@ -16,7 +16,6 @@ class CertificatePrintPolicy
     public function print(User $user, Certificate $certificate): bool
     {
         return $user->isActive()
-            && $user->can('certificate.print')
             && ($user->isSystemAdmin() || $this->sameLga($user, $certificate->lga_id))
             && $certificate->status === CertificateStatus::Active
             && $certificate->indigene->lifecycle_status === 'active'
