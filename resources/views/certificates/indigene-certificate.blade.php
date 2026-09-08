@@ -72,7 +72,7 @@
         (string) $value('branding.certificate_date_format', 'd/m/y')
     );
 
-    $officeTitle = trim((string) $value('signatory.office_title', 'Executive Chairman'));
+    $officeTitle = 'Executive Chairman';
     $copyText = trim((string) ($copyLabel ?? 'ORIGINAL - COPY 01'));
     $isReprint = str_contains(mb_strtoupper($copyText), 'REPRINT');
 
